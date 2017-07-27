@@ -6,6 +6,9 @@ type Handler func(*Context, Next)
 type HandlerFinal func(*Context)
 type HandlerCompose func(*Context, Next) Next
 
+/*
+transfer Handler to HandlerCompose func
+ */
 func makeCompose(handles ...Handler) HandlerCompose {
 	composeHandles := []HandlerCompose{}
 	for _, handle := range handles {
