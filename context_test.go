@@ -12,7 +12,7 @@ func TestParams(t *testing.T) {
 		Param{"param3", "value3"},
 	}
 	for i := range ps {
-		if val, _ := ps.Get(ps[i].Key); val != "222" {
+		if val, _ := ps.Get(ps[i].Key); val != ps[i].Value {
 			t.Errorf("Wrong value for %s: Got %s; Want %s", ps[i].Key, val, ps[i].Value)
 		}
 	}
