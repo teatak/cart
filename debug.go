@@ -50,7 +50,7 @@ func SetMode(value string) {
 	case ReleaseMode:
 		cartMode = releaseCode
 	default:
-		panic("Kart mode unknown: " + value)
+		panic("Cart mode unknown: " + value)
 	}
 }
 
