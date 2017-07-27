@@ -104,7 +104,7 @@ func printError(err error) {
 		if IsDebugging() {
 			isTerm := true
 
-			if disableColor {
+			if _, ok := DefaultWriter.(*os.File); !ok || disableColor {
 				isTerm = false
 			}
 			var redColor,resetColor string
