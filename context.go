@@ -2,12 +2,6 @@ package cart
 
 import "net/http"
 
-type Context struct {
-	Request   *http.Request
-	Writer    http.ResponseWriter
-	Keys     map[string]interface{}
-}
-
 type Param struct {
 	Key   string
 	Value string
@@ -23,3 +17,25 @@ func (ps Params) Get(name string) (string, bool) {
 	}
 	return "", false
 }
+
+type Context struct {
+	response 	responseWriter
+	Request   	*http.Request
+	Response    ResponseWriter
+
+	Params   	Params
+
+	Keys     	map[string]interface{}
+}
+
+/*
+reset Con
+ */
+func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
+	c.response.reset(w)
+	c.Response = &c.response
+	c.Request = req
+	c.Params = c.Params[0:0]
+	c.Keys = nil
+}
+

@@ -21,7 +21,7 @@ func printChildren(n *node, prefix string) {
 // Used as a workaround since we can't compare functions or their addresses
 var fakeHandlerValue string
 
-func fakeHandler(val string) ComposeHandle {
+func fakeHandler(val string) HandlerCompose {
 	return func(*Context, Next) Next {
 		return func() {
 			fakeHandlerValue = val
@@ -39,7 +39,6 @@ type testRequests []struct {
 func checkRequests(t *testing.T, tree *node, requests testRequests) {
 	for _, request := range requests {
 		handler, ps, _ := tree.getValue(request.path)
-
 		if handler == nil {
 			if !request.nilHandler {
 				t.Errorf("handle mismatch for route '%s': Expected non-nil handle", request.path)
@@ -47,7 +46,8 @@ func checkRequests(t *testing.T, tree *node, requests testRequests) {
 		} else if request.nilHandler {
 			t.Errorf("handle mismatch for route '%s': Expected nil handle", request.path)
 		} else {
-			handler(nil, nil)()
+			handle := handler.(HandlerCompose)
+			handle(nil, nil)()
 			if fakeHandlerValue != request.route {
 				t.Errorf("handle mismatch for route '%s': Wrong handle (%s != %s)", request.path, fakeHandlerValue, request.route)
 			}
