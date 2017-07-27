@@ -44,8 +44,8 @@ func TestDebugPrint(t *testing.T) {
 	setup(&w)
 	defer teardown()
 
-	SetMode("errorMode")
 	SetMode(DebugMode)
+	disableColor = false
 
 	printWarning()
 	printError(errors.New("new error"))
