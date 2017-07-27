@@ -51,7 +51,7 @@ func TestCompose(t *testing.T) {
 		}
 	}
 	// (0+2)*2+5
-	if compose(nil) != nil {
+	if compose() != nil {
 		t.Errorf("Expected call compose func should return nil")
 	}
 	if compose(add2) == nil {
