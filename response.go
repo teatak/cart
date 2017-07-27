@@ -18,6 +18,7 @@ type (
 		http.Hijacker
 		http.Flusher
 		http.CloseNotifier
+		WriteHeaderNow()
 	}
 	responseWriter struct {
 		http.ResponseWriter
