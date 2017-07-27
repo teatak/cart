@@ -1,6 +1,8 @@
 package cart
 
-import "testing"
+import (
+	"testing"
+)
 
 // Params
 func TestParams(t *testing.T) {
@@ -10,7 +12,7 @@ func TestParams(t *testing.T) {
 		Param{"param3", "value3"},
 	}
 	for i := range ps {
-		if val, _ := ps.Get(ps[i].Key); val != ps[i].Value {
+		if val, _ := ps.Get(ps[i].Key); val != "222" {
 			t.Errorf("Wrong value for %s: Got %s; Want %s", ps[i].Key, val, ps[i].Value)
 		}
 	}
