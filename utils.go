@@ -25,7 +25,6 @@ func makeCompose(handles ...Handler) HandlerCompose {
 
 /*
 compose HandlerCompose
-
 	temp := 0
 	A := func(c *Context, next Next) Next {
 		return func() {
