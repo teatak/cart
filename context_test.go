@@ -20,3 +20,8 @@ func TestParams(t *testing.T) {
 		t.Errorf("Expected empty string for not found key; got: %s", val)
 	}
 }
+
+func TestContext(t *testing.T) {
+	c := &Context{}
+	c.reset(nil,nil)
+}
