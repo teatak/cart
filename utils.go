@@ -60,5 +60,4 @@ func compose(functions ...HandlerCompose) HandlerCompose {
 		}
 		return composed
 	}
-
 }
