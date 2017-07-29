@@ -164,9 +164,9 @@ func (e *Engine) Run(addr ...string) (err error) {
 		Addr: address,
 		Handler: e,
 		ReadTimeout: time.Second * 90,
-		ReadHeaderTimeout: time.Second * 90,
+		//ReadHeaderTimeout: time.Second * 90,
 		WriteTimeout: time.Second * 90,
-		IdleTimeout: time.Second * 90,
+		//IdleTimeout: time.Second * 90,
 	}
 	err = server.ListenAndServe()
 	return
