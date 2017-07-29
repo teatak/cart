@@ -76,12 +76,36 @@ func (e *Engine) serveHTTP(c *Context) {
 					c.Response.WriteString("empty page")
 				}
 			}
+
+			//http method find any
+			var methods HandlerCompose
+			if m, find := router.getMethod("ANY"); find {
+				methods = compose(m)
+			}
+			if m, find := router.getMethod(httpMethod); find {
+				if methods != nil {
+					methods = compose(methods,m)
+				} else {
+					methods = compose(m)
+				}
+			}
+
+			//middleware
 			composed := router.Composed
 			if composed!=nil {
+				if methods!=nil {
+					composed = compose(methods)
+				}
 				composed(c,final)()
 				//(c,final)()
-				c.Response.WriteHeaderNow()
+			} else {
+				if methods!=nil {
+					methods(c,final)()
+				} else {
+					final()
+				}
 			}
+			c.Response.WriteHeaderNow()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
 			code := 301 // Permanent redirect, request with GET method

@@ -31,4 +31,26 @@ func main() {
 	})
 }
 ```
-
+## Using GET POST ... 
+```go
+func main() {
+    c.Route("/a").Route("/b", func(r *cart.Router) {
+		r.ANY(func(context *cart.Context, next cart.Next) {
+			context.Response.WriteString("ANY")
+			next()
+		})
+		r.GET(func(context *cart.Context) {
+			context.Response.WriteString(" /a/b")
+		})
+	})
+	c.Route("/a/c", func(r *cart.Router) {
+    		r.ANY(func(context *cart.Context, next cart.Next) {
+    			context.Response.WriteString("ANY")
+    			next()
+    		})
+    		r.GET(func(context *cart.Context) {
+    			context.Response.WriteString(" /a/c")
+    		})
+    	})
+}
+```
