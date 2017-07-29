@@ -67,7 +67,7 @@ func IsDebugging() bool {
 	return cartMode == debugCode
 }
 
-func printDebug(format string, values ...interface{}) {
+func debugPrint(format string, values ...interface{}) {
 	if IsDebugging() {
 		isTerm := true
 
@@ -86,7 +86,7 @@ func printDebug(format string, values ...interface{}) {
 	}
 }
 
-func printWarning() {
+func debugWarning() {
 	print(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
  - using env:	export CART_MODE=release
  - using code:	cart.SetMode(cart.ReleaseMode)
@@ -99,7 +99,7 @@ func printWarning() {
 `)
 }
 
-func printError(err error) {
+func debugError(err error) {
 	if err != nil {
 		if IsDebugging() {
 			isTerm := true

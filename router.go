@@ -1,74 +1,96 @@
 package cart
 
+import (
+	"strings"
+)
 
 type (
 
-	HandlerRoute func(IRouter)
+	HandlerRoute func(*Router)
 
-	IRouter interface {
-		Route(string, ...HandlerRoute) IRouter
-		Handle(HandlerFinal) IRouter
-		GET(HandlerFinal) IRouter
-		POST(HandlerFinal) IRouter
-		PUT(HandlerFinal) IRouter
-		PATCH(HandlerFinal) IRouter
-		HEAD(HandlerFinal) IRouter
-		OPTIONS(HandlerFinal) IRouter
-		DELETE(HandlerFinal) IRouter
-		CONNECT(HandlerFinal) IRouter
-		TRACE(HandlerFinal) IRouter
+	Method struct {
+		Key string
+		HandlerCompose
 	}
-
 	Router struct {
-		engine *Engine
-		parent IRouter
-		basePath string
-		root bool
+		engine 		*Engine
+		basePath 	string
+		Composed	HandlerCompose
+		Methods 	[]Method
 	}
 )
+func (r *Router) handle(httpMethod, absolutePath string, handles HandlerCompose) *Router {
+	next := r.engine.getRouter(absolutePath)
+	sp := strings.Split(absolutePath[0:len(absolutePath)],"/")
+	findParent := false
+	for i, _ := range sp {
+		tempPath :=  strings.Join(sp[0:len(sp)-i],"/")
+		if tempPath == ""  {
+			tempPath = "/"
+		}
+		if(r.engine.findRouter(tempPath)) {
+			findParent = true
+			parentComposed := r.engine.getRouter(tempPath).Composed
+			next.Composed = compose(parentComposed,handles)
+			break;
+		}
+	}
 
-var _ IRouter = &Router{}
+	if(!findParent) {
+		next.Composed = compose(handles)
+	}
+	r.engine.addRoute(next)
+	return next
+}
 
-func (r *Router) Route(relativePath string, handles ...HandlerRoute) IRouter {
+func (r *Router) Route(relativePath string, handles ...HandlerRoute) *Router {
+	absolutePath := joinPaths(r.basePath, relativePath)
+	next := r.engine.getRouter(absolutePath)
+	for _, handle := range handles {
+		handle(next)
+	}
+	return next
+}
+
+func (r *Router) Use(relativePath string, handles ...Handler) *Router {
+	absolutePath := joinPaths(r.basePath, relativePath)
+	next := r.handle("ANY",absolutePath,makeCompose(handles...))
+	return next
+}
+
+func (r *Router) GET(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) Handle(handle HandlerFinal) IRouter {
+func (r *Router) POST(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) GET(handle HandlerFinal) IRouter {
+func (r *Router) PUT(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) POST(handle HandlerFinal) IRouter {
+func (r *Router) PATCH(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) PUT(handle HandlerFinal) IRouter {
+func (r *Router) HEAD(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) PATCH(handle HandlerFinal) IRouter {
+func (r *Router) OPTIONS(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) HEAD(handle HandlerFinal) IRouter {
+func (r *Router) DELETE(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) OPTIONS(handle HandlerFinal) IRouter {
+func (r *Router) CONNECT(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) DELETE(handle HandlerFinal) IRouter {
+func (r *Router) TRACE(handle HandlerFinal) *Router {
 	return r
 }
 
-func (r *Router) CONNECT(handle HandlerFinal) IRouter {
-	return r
-}
-
-func (r *Router) TRACE(handle HandlerFinal) IRouter {
-	return r
-}

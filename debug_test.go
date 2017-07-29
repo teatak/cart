@@ -47,10 +47,10 @@ func TestDebugPrint(t *testing.T) {
 	SetMode(DebugMode)
 	disableColor = true
 
-	printWarning()
-	printError(errors.New("new error"))
+	debugWarning()
+	debugError(errors.New("new error"))
 
-	printDebug("these are |%d %s\n", 2, "error messages")
+	debugPrint("these are |%d %s\n", 2, "error messages")
 	//w.String()
 	s := strings.Split(w.String(),"|")[1]
 	if(s != "2 error messages\n") {
@@ -59,8 +59,8 @@ func TestDebugPrint(t *testing.T) {
 
 	disableColor = false
 
-	printError(errors.New("new error"))
-	printDebug("these are |%d %s\n", 2, "error messages")
+	debugError(errors.New("new error"))
+	debugPrint("these are |%d %s\n", 2, "error messages")
 }
 //utils
 

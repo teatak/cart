@@ -18,7 +18,10 @@ type (
 		http.Hijacker
 		http.Flusher
 		http.CloseNotifier
+		WriteString(string) (int, error)
 		WriteHeaderNow()
+		Status()	int
+		Size()		int
 	}
 	responseWriter struct {
 		http.ResponseWriter
@@ -38,7 +41,7 @@ func (w *responseWriter) reset(writer http.ResponseWriter) {
 func (w *responseWriter) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
-			printDebug("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			debugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
 		}
 		w.status = code
 	}
@@ -52,6 +55,10 @@ func (w *responseWriter) WriteHeaderNow() {
 }
 
 func (w *responseWriter) Write(data []byte) (n int, err error) {
+	//custom 404 error
+	if w.status == 404 {
+		return len(data), nil
+	}
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
 	w.size += n

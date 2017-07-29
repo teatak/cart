@@ -23,6 +23,7 @@ type Context struct {
 	Request   	*http.Request
 	Response    ResponseWriter
 
+	Router		*Router
 	Params   	Params
 
 	Keys     	map[string]interface{}
