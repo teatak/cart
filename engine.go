@@ -104,8 +104,6 @@ func (e *Engine) serveHTTP(c *Context) {
 		// 404 error
 		c.Response.WriteHeader(404)
 		c.Response.WriteString("404 error")
-
-
 	}
 	if e.findRouter("/") {
 		composed := e.getRouter("/").Composed
