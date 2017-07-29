@@ -4,6 +4,7 @@ import (
 	"sync"
 	"net/http"
 	"os"
+	"time"
 )
 
 type Engine struct {
@@ -140,10 +141,10 @@ func (e *Engine) Run(addr ...string) (err error) {
 	server = &http.Server{
 		Addr: address,
 		Handler: e,
-		//ReadTimeout: time.Second * 90,
-		//ReadHeaderTimeout: time.Second * 90,
-		//WriteTimeout: time.Second * 90,
-		//IdleTimeout: time.Second * 90,
+		ReadTimeout: time.Second * 90,
+		ReadHeaderTimeout: time.Second * 90,
+		WriteTimeout: time.Second * 90,
+		IdleTimeout: time.Second * 90,
 	}
 	err = server.ListenAndServe()
 	return
