@@ -34,8 +34,8 @@ func main() {
 ## Using GET POST ... 
 ```go
 func main() {
-    c.Route("/a").Route("/b", func(r *cart.Router) {
-	    r.ANY(func(context *cart.Context, next cart.Next) {
+	c.Route("/a").Route("/b", func(r *cart.Router) {
+		r.ANY(func(context *cart.Context, next cart.Next) {
 			context.Response.WriteString("ANY")
 			next()
 		})
