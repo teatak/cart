@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/url"
 	"github.com/gimke/cart/render"
+	"io"
 )
 
 type Param struct {
@@ -136,8 +137,67 @@ func (c *Context) HTML(code int, name string, obj interface{}) {
 	//c.Render(code, instance)
 }
 
+// IndentedJSON serializes the given struct as pretty JSON (indented + endlines) into the response body.
+// It also sets the Content-Type as "application/json".
+// WARNING: we recommend to use this only for development purposes since printing pretty JSON is
+// more CPU and bandwidth consuming. Use Context.JSON() instead.
+func (c *Context) IndentedJSON(code int, obj interface{}) {
+	c.Render(code, render.IndentedJSON{Data: obj})
+}
+
 // JSON serializes the given struct as JSON into the response body.
 // It also sets the Content-Type as "application/json".
 func (c *Context) JSON(code int, obj interface{}) {
 	c.Render(code, render.JSON{Data: obj})
 }
+
+// XML serializes the given struct as XML into the response body.
+// It also sets the Content-Type as "application/xml".
+func (c *Context) XML(code int, obj interface{}) {
+	c.Render(code, render.XML{Data: obj})
+}
+
+// String writes the given string into the response body.
+func (c *Context) String(code int, format string, values ...interface{}) {
+	c.Render(code, render.String{Format: format, Data: values})
+}
+
+// Redirect returns a HTTP redirect to the specific location.
+func (c *Context) Redirect(code int, location string) {
+	c.Render(-1, render.Redirect{
+		Code:     code,
+		Location: location,
+		Request:  c.Request,
+	})
+}
+
+// Data writes some data into the body stream and updates the HTTP code.
+func (c *Context) Data(code int, contentType string, data []byte) {
+	c.Render(code, render.Data{
+		ContentType: contentType,
+		Data:        data,
+	})
+}
+
+// File writes the specified file into the body stream in a efficient way.
+func (c *Context) File(filepath string) {
+	http.ServeFile(c.Response, c.Request, filepath)
+}
+
+func (c *Context) Stream(step func(w io.Writer) bool) {
+	w := c.Response
+	clientGone := w.CloseNotify()
+	for {
+		select {
+		case <-clientGone:
+			return
+		default:
+			keepOpen := step(w)
+			w.Flush()
+			if !keepOpen {
+				return
+			}
+		}
+	}
+}
+
