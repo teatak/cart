@@ -13,6 +13,8 @@ type Engine struct {
 	engine			*Engine
 	pool        	sync.Pool
 	tree			*node 	//match trees
+
+	NotFound		HandlerFinal
 }
 
 var _ http.Handler = &Engine{}
@@ -36,23 +38,23 @@ func (e *Engine) getRouter(absolutePath string) *Router {
 	if router == nil {
 		router = &Router{
 			engine:e,
-			basePath:absolutePath,
-			Methods:make([]Method,0),
+			Path:absolutePath,
+			methods:make([]method,0),
 		}
 	}
 	return router
 }
 
 func (e *Engine) addRoute(router *Router) {
-	if router.basePath[0] != '/' {
-		panic("Path must begin with '/' in path '" + router.basePath + "'")
+	if router.Path[0] != '/' {
+		panic("Path must begin with '/' in path '" + router.Path + "'")
 	}
 	if e.tree == nil {
 		e.tree = &node{}
 	}
-	if _, found := e.tree.findCaseInsensitivePath(router.basePath, true); !found {
-		e.routers[router.basePath] = router
-		e.tree.addRoute(router.basePath, router)
+	if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
+		e.routers[router.Path] = router
+		e.tree.addRoute(router.Path, router)
 	}
 }
 
@@ -61,6 +63,22 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c.reset(w, req)
 	e.serveHTTP(c)
 	e.pool.Put(c)
+}
+
+func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
+	//http method find any
+	var methods HandlerCompose
+	if m, find := r.getMethod("ANY"); find {
+		methods = compose(m)
+	}
+	if m, find := r.getMethod(httpMethod); find {
+		if methods != nil {
+			methods = compose(methods,m)
+		} else {
+			methods = compose(m)
+		}
+	}
+	return methods
 }
 
 func (e *Engine) serveHTTP(c *Context) {
@@ -72,40 +90,26 @@ func (e *Engine) serveHTTP(c *Context) {
 			c.Router = router
 			c.Params = ps
 			final := func() {
-				// 404 error
 				if c.Response.Size() == -1 && c.Response.Status() == 200 {
 					c.Response.WriteString("empty page")
 				}
 			}
 
-			//http method find any
-			var methods HandlerCompose
-			if m, find := router.getMethod("ANY"); find {
-				methods = compose(m)
+			//methods
+			methods := e.mixMethods(httpMethod, router)
+			//middleware
+			composed := router.composed
+			if composed != nil && methods != nil {
+				composed = compose(composed, methods)
+			} else if composed == nil && methods != nil {
+				composed = methods
 			}
-			if m, find := router.getMethod(httpMethod); find {
-				if methods != nil {
-					methods = compose(methods,m)
-				} else {
-					methods = compose(m)
-				}
+			if composed != nil {
+				composed(c,final)()
+			} else {
+				final()
 			}
 
-			//middleware
-			composed := router.Composed
-			if composed!=nil {
-				if methods!=nil {
-					composed = compose(composed, methods)
-				}
-				composed(c,final)()
-				//(c,final)()
-			} else {
-				if methods!=nil {
-					methods(c,final)()
-				} else {
-					final()
-				}
-			}
 			c.Response.WriteHeaderNow()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
@@ -125,13 +129,18 @@ func (e *Engine) serveHTTP(c *Context) {
 		}
 	}
 	//find / middleware
+
 	final404 := func() {
 		// 404 error
 		c.Response.WriteHeader(404)
-		c.Response.WriteString("404 error")
+		if e.NotFound != nil {
+			e.NotFound(c);
+		} else {
+			c.Response.WriteString("404 error")
+		}
 	}
 	if r, find := e.findRouter("/"); find {
-		r.Composed(c,final404)()
+		r.composed(c,final404)()
 	} else {
 		final404()
 	}
@@ -142,7 +151,7 @@ init new Engine
  */
 func (e *Engine) init() {
 	e.Router = Router{
-		basePath: "/",
+		Path: "/",
 	}
 	e.Router.engine = e
 	e.pool.New = func() interface{} {

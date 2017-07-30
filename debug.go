@@ -7,6 +7,18 @@ import (
 	"io"
 )
 
+var (
+	green        = string([]byte{27, 91, 57, 55, 59, 52, 50, 109})
+	white        = string([]byte{27, 91, 57, 48, 59, 52, 55, 109})
+	yellow       = string([]byte{27, 91, 57, 55, 59, 52, 51, 109})
+	red          = string([]byte{27, 91, 57, 55, 59, 52, 49, 109})
+	blue         = string([]byte{27, 91, 57, 55, 59, 52, 52, 109})
+	magenta      = string([]byte{27, 91, 57, 55, 59, 52, 53, 109})
+	cyan         = string([]byte{27, 91, 57, 55, 59, 52, 54, 109})
+	reset        = string([]byte{27, 91, 48, 109})
+	disableColor = false
+)
+
 const ENV_CART_MODE = "CART_MODE"
 
 const (
@@ -21,18 +33,6 @@ const (
 var DefaultWriter io.Writer = os.Stdout
 var DefaultErrorWriter io.Writer = os.Stderr
 var cartMode = debugCode
-
-var (
-	green        = string([]byte{27, 91, 57, 55, 59, 52, 50, 109})
-	white        = string([]byte{27, 91, 57, 48, 59, 52, 55, 109})
-	yellow       = string([]byte{27, 91, 57, 55, 59, 52, 51, 109})
-	red          = string([]byte{27, 91, 57, 55, 59, 52, 49, 109})
-	blue         = string([]byte{27, 91, 57, 55, 59, 52, 52, 109})
-	magenta      = string([]byte{27, 91, 57, 55, 59, 52, 53, 109})
-	cyan         = string([]byte{27, 91, 57, 55, 59, 52, 54, 109})
-	reset        = string([]byte{27, 91, 48, 109})
-	disableColor = false
-)
 
 func init() {
 	mode := os.Getenv(ENV_CART_MODE)

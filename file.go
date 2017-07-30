@@ -26,7 +26,7 @@ func Static(relativePath string, listDirectory bool) Handler {
 	}
 	return func(c *Context, next Next) {
 		fs := Dir(relativePath, listDirectory)
-		prefix := c.Router.basePath
+		prefix := c.Router.Path
 		index := strings.LastIndex(prefix,"*")
 		if index!=-1 {
 			prefix = prefix[0:index]
