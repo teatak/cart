@@ -84,16 +84,22 @@ func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
 func (e *Engine) serveHTTP(c *Context) {
 	path := c.Request.URL.Path
 	httpMethod := c.Request.Method
+
+	final404 := func() {
+		// 404 error
+		c.Response.WriteHeader(404)
+		if e.NotFound != nil {
+			e.NotFound(c);
+		} else {
+			c.Response.WriteString("404 Not Found")
+		}
+	}
+
 	if root := e.tree; root != nil {
 		if r, ps, tsr := root.getValue(path); r != nil {
 			router := r.(*Router)
 			c.Router = router
 			c.Params = ps
-			final := func() {
-				if c.Response.Size() == -1 && c.Response.Status() == 200 {
-					c.Response.WriteString("empty page")
-				}
-			}
 
 			//methods
 			methods := e.mixMethods(httpMethod, router)
@@ -105,9 +111,9 @@ func (e *Engine) serveHTTP(c *Context) {
 				composed = methods
 			}
 			if composed != nil {
-				composed(c,final)()
+				composed(c,final404)()
 			} else {
-				final()
+				final404()
 			}
 
 			c.Response.WriteHeaderNow()
@@ -130,15 +136,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	}
 	//find / middleware
 
-	final404 := func() {
-		// 404 error
-		c.Response.WriteHeader(404)
-		if e.NotFound != nil {
-			e.NotFound(c);
-		} else {
-			c.Response.WriteString("404 error")
-		}
-	}
+
 	if r, find := e.findRouter("/"); find {
 		r.composed(c,final404)()
 	} else {
