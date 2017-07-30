@@ -29,41 +29,39 @@ func (r *Router) getMethod(httpMethod string) (HandlerCompose, bool) {
 	return nil, false
 }
 
-func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose) *Router {
-	next := r.engine.getRouter(absolutePath)
-	sp := strings.Split(absolutePath[0:len(absolutePath)],"/")
-	findParent := false
+func (r *Router) mixComposed(absolutePath string) HandlerCompose {
+	sp := strings.Split(absolutePath,"/")
 	for i, _ := range sp {
-		tempPath :=  strings.Join(sp[0:len(sp)-i],"/")
-		if tempPath == ""  {
+		//find it's self first ..... last is root path / router
+		tempPath := strings.Join(sp[0:len(sp)-i], "/")
+		if tempPath == "" {
 			tempPath = "/"
 		}
-		if pr,find := r.engine.findRouter(tempPath); find{
-			findParent = true
-			parentComposed := pr.Composed
-			if httpMethod == "" {
-				//middleware
-				next.Composed = compose(parentComposed,handler)
-			} else {
-				//http mothod
-				next.Composed = compose(parentComposed)
-				method := Method{Key:httpMethod, HandlerCompose:handler}
-				next.Methods = append(next.Methods, method)
-			}
-			break;
+		if pr, find := r.engine.findRouter(tempPath); find {
+			return pr.Composed
 		}
 	}
+	return nil
+}
 
-	if(!findParent) {
-		if httpMethod == "" {
-			//middleware
-			next.Composed = compose(handler)
-		} else {
-			//http mothod
-			method := Method{Key:httpMethod, HandlerCompose:handler}
-			next.Methods = append(next.Methods, method)
-		}
+func (r *Router) use(absolutePath string, handler HandlerCompose) *Router {
+	next := r.engine.getRouter(absolutePath)
+	if composed := r.mixComposed(absolutePath); composed!=nil {
+		next.Composed = compose(composed, handler)
+	} else {
+		next.Composed = compose(handler)
 	}
+	r.engine.addRoute(next)
+	return next
+}
+
+func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose) *Router {
+	next := r.engine.getRouter(absolutePath)
+	if composed := r.mixComposed(absolutePath); composed!=nil {
+		next.Composed = compose(composed)
+	}
+	method := Method{Key:httpMethod, HandlerCompose:handler}
+	next.Methods = append(next.Methods, method)
 	r.engine.addRoute(next)
 	return next
 }
@@ -79,7 +77,7 @@ func (r *Router) Route(relativePath string, handles ...HandlerRoute) *Router {
 
 func (r *Router) Use(relativePath string, handles ...Handler) *Router {
 	absolutePath := joinPaths(r.basePath, relativePath)
-	next := r.handle("",absolutePath,makeCompose(handles...))
+	next := r.use(absolutePath, makeCompose(handles...))
 	return next
 }
 
