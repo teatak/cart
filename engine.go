@@ -15,6 +15,7 @@ type Engine struct {
 	tree			*node 	//match trees
 
 	NotFound		HandlerFinal
+	TemplatePath	string
 }
 
 var _ http.Handler = &Engine{}

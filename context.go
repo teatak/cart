@@ -1,10 +1,12 @@
 package cart
 
 import (
+	"html/template"
 	"net/http"
 	"net/url"
 	"github.com/gimke/cart/render"
 	"io"
+	"bytes"
 )
 
 type Param struct {
@@ -132,10 +134,41 @@ func (c *Context) Render(code int, r render.Render) {
 // HTML renders the HTTP template specified by its file name.
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
-func (c *Context) HTML(code int, name string, obj interface{}) {
-	//instance := render.HTMLProduction{Template }
-	//c.Render(code, instance)
+func (c *Context) HTML(code int, path string, obj interface{}) {
+	tpl,err := template.ParseFiles(path)
+	if err!=nil {
+		panic(err)
+	}
+	c.Render(code, render.HTML{Template: tpl, Data:obj})
 }
+
+//
+func (c *Context) HTMLLayout(code int, layout, path string, obj interface{}) {
+	if c.Router.engine.TemplatePath != "" {
+		layout = 	c.Router.engine.TemplatePath+layout
+		path = 	c.Router.engine.TemplatePath+path
+	}
+	tpl,err := template.ParseFiles(path)
+	if err!=nil {
+		panic(err)
+	}
+	var buf bytes.Buffer
+	tpl.Execute(&buf,obj);
+
+	html := buf.String()
+
+	tpllayout,errlayout := template.ParseFiles(layout)
+	if errlayout!=nil {
+		panic(err)
+	}
+
+	//rebuild obj
+	tmp := obj.(H)
+	tmp["__CONTENT"] = html
+
+	c.Render(code, render.HTML{Template: tpllayout, Data:tmp})
+}
+
 
 // IndentedJSON serializes the given struct as pretty JSON (indented + endlines) into the response body.
 // It also sets the Content-Type as "application/json".

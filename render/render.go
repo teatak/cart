@@ -19,8 +19,6 @@ var (
 	_ Render     = Redirect{}
 	_ Render     = Data{}
 	_ Render     = HTML{}
-	_ HTMLRender = HTMLDebug{}
-	_ HTMLRender = HTMLProduction{}
 )
 
 func writeContentType(w http.ResponseWriter, value []string) {
