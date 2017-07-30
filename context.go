@@ -164,7 +164,7 @@ func (c *Context) HTMLLayout(code int, layout, path string, obj interface{}) {
 
 	//rebuild obj
 	tmp := obj.(H)
-	tmp["__CONTENT"] = html
+	tmp["__CONTENT"] = template.HTML(html)
 
 	c.Render(code, render.HTML{Template: tpllayout, Data:tmp})
 }
