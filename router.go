@@ -38,17 +38,14 @@ func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose)
 		if tempPath == ""  {
 			tempPath = "/"
 		}
-		if(r.engine.findRouter(tempPath)) {
+		if pr,find := r.engine.findRouter(tempPath); find{
 			findParent = true
-			parentComposed := r.engine.getRouter(tempPath).Composed
+			parentComposed := pr.Composed
 			if httpMethod == "" {
 				//middleware
 				next.Composed = compose(parentComposed,handler)
 			} else {
 				//http mothod
-				if(next.Methods == nil) {
-					next.Methods = make([]Method,1)
-				}
 				next.Composed = compose(parentComposed)
 				method := Method{Key:httpMethod, HandlerCompose:handler}
 				next.Methods = append(next.Methods, method)
@@ -63,9 +60,6 @@ func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose)
 			next.Composed = compose(handler)
 		} else {
 			//http mothod
-			if(next.Methods == nil) {
-				next.Methods = make([]Method,1)
-			}
 			method := Method{Key:httpMethod, HandlerCompose:handler}
 			next.Methods = append(next.Methods, method)
 		}

@@ -23,12 +23,12 @@ func (e *Engine) allocateContext() *Context {
 	return &Context{}
 }
 
-func (e *Engine) findRouter(absolutePath string) bool {
+func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
 	router := e.routers[absolutePath]
 	if router == nil {
-		return false
+		return nil, false
 	}
-	return true
+	return router, true
 }
 
 func (e *Engine) getRouter(absolutePath string) *Router {
@@ -37,6 +37,7 @@ func (e *Engine) getRouter(absolutePath string) *Router {
 		router = &Router{
 			engine:e,
 			basePath:absolutePath,
+			Methods:make([]Method,0),
 		}
 	}
 	return router
@@ -94,7 +95,7 @@ func (e *Engine) serveHTTP(c *Context) {
 			composed := router.Composed
 			if composed!=nil {
 				if methods!=nil {
-					composed = compose(methods)
+					composed = compose(composed, methods)
 				}
 				composed(c,final)()
 				//(c,final)()
@@ -129,10 +130,8 @@ func (e *Engine) serveHTTP(c *Context) {
 		c.Response.WriteHeader(404)
 		c.Response.WriteString("404 error")
 	}
-	if e.findRouter("/") {
-		composed := e.getRouter("/").Composed
-		composed(c,final404)()
-
+	if r, find := e.findRouter("/"); find {
+		r.Composed(c,final404)()
 	} else {
 		final404()
 	}
