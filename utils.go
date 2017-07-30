@@ -11,6 +11,8 @@ type Handler func(*Context, Next)
 type HandlerFinal func(*Context)
 type HandlerCompose func(*Context, Next) Next
 
+type H map[string]interface{}
+
 func resolveAddress(addr []string) string {
 	switch len(addr) {
 	case 0:
