@@ -32,9 +32,14 @@ func Static(relativePath string, listDirectory bool) Handler {
 			prefix = prefix[0:index]
 		}
 		fileServer := http.StripPrefix(prefix,http.FileServer(fs))
+		_, nolisting := fs.(*onlyfilesFS)
+		if nolisting {
+			c.Response.WriteHeader(404)
+		}
 		fileServer.ServeHTTP(c.Response, c.Request)
 		if(c.Response.Status() == 404) {
 			c.Response.WriteHeader(200)	//reset status
+			debugPrint("404")
 			next()
 		}
 

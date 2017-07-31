@@ -150,16 +150,6 @@ func (e *Engine) serveHTTP(c *Context) {
 	} else {
 		final404()
 	}
-	//if r, find := e.findRouter("/"); find {
-	//	if r.composed!=nil {
-	//		c.Router = r
-	//		r.composed(c,final404)()
-	//	} else {
-	//		final404()
-	//	}
-	//} else {
-	//	final404()
-	//}
 	c.Response.WriteHeaderNow()
 }
 
