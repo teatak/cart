@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"strings"
 )
 
 type Engine struct {
@@ -34,16 +35,18 @@ func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
 	return router, true
 }
 
-func (e *Engine) getRouter(absolutePath string) *Router {
+func (e *Engine) getRouter(absolutePath string) (*Router, bool) {
 	router := e.routers[absolutePath]
+	find := true
 	if router == nil {
+		find = false
 		router = &Router{
 			engine:e,
 			Path:absolutePath,
 			methods:make([]method,0),
 		}
 	}
-	return router
+	return router, find
 }
 
 func (e *Engine) addRoute(router *Router) {
@@ -54,6 +57,7 @@ func (e *Engine) addRoute(router *Router) {
 		e.tree = &node{}
 	}
 	if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
+		debugPrint("Add Router %s",router.Path)
 		e.routers[router.Path] = router
 		e.tree.addRoute(router.Path, router)
 	}
@@ -88,11 +92,14 @@ func (e *Engine) serveHTTP(c *Context) {
 
 	final404 := func() {
 		// 404 error
-		c.Response.WriteHeader(404)
-		if e.NotFound != nil {
-			e.NotFound(c);
-		} else {
-			c.Response.WriteString("404 Not Found")
+		// make temp router
+		c.Router,_ = e.getRouter(path)
+		if c.Response.Size() == -1 && c.Response.Status() == 200 {
+			if e.NotFound != nil {
+				e.NotFound(c);
+			} else {
+				c.Response.WriteString("404 Not Found")
+			}
 		}
 	}
 
@@ -105,6 +112,7 @@ func (e *Engine) serveHTTP(c *Context) {
 			//methods
 			methods := e.mixMethods(httpMethod, router)
 			//middleware
+
 			composed := router.composed
 			if composed != nil && methods != nil {
 				composed = compose(composed, methods)
@@ -116,7 +124,6 @@ func (e *Engine) serveHTTP(c *Context) {
 			} else {
 				final404()
 			}
-
 			c.Response.WriteHeaderNow()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
@@ -136,19 +143,48 @@ func (e *Engine) serveHTTP(c *Context) {
 		}
 	}
 	//find / middleware
-
-
-	if r, find := e.findRouter("/"); find {
-		if r.composed!=nil {
-			r.composed(c,final404)()
-		} else {
-			final404()
-		}
+	r, composed := e.mixComposed(path)
+	if composed != nil {
+		c.Router = r
+		composed(c,final404)()
 	} else {
 		final404()
 	}
+	//if r, find := e.findRouter("/"); find {
+	//	if r.composed!=nil {
+	//		c.Router = r
+	//		r.composed(c,final404)()
+	//	} else {
+	//		final404()
+	//	}
+	//} else {
+	//	final404()
+	//}
+	c.Response.WriteHeaderNow()
 }
 
+func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
+	sp := strings.Split(absolutePath,"/")
+	for i, _ := range sp {
+		//find it's self first ..... last is root path / router
+		tempPath := strings.Join(sp[0:len(sp)-i], "/")
+		if tempPath == "" {
+			tempPath = "/"
+		}
+		if pr, find := e.findRouter(tempPath); find {
+			return pr, pr.composed
+		}
+		//auto add slash then find
+		if tempPath[len(tempPath)-1] != '/' && tempPath != absolutePath && tempPath != "/" {
+			tempPath = tempPath+"/"
+			if pr, find := e.findRouter(tempPath); find {
+				return pr, pr.composed
+			}
+		}
+
+	}
+	return nil, nil
+}
 /*
 init new Engine
  */

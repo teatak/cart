@@ -1,9 +1,5 @@
 package cart
 
-import (
-	"strings"
-)
-
 type (
 
 	HandlerRoute func(*Router)
@@ -29,46 +25,37 @@ func (r *Router) getMethod(httpMethod string) (HandlerCompose, bool) {
 	return nil, false
 }
 
-func (r *Router) mixComposed(absolutePath string) HandlerCompose {
-	sp := strings.Split(absolutePath,"/")
-	for i, _ := range sp {
-		//find it's self first ..... last is root path / router
-		tempPath := strings.Join(sp[0:len(sp)-i], "/")
-		if tempPath == "" {
-			tempPath = "/"
-		}
-		if pr, find := r.engine.findRouter(tempPath); find {
-			return pr.composed
-		}
-	}
-	return nil
-}
+
 
 func (r *Router) use(absolutePath string, handler HandlerCompose) *Router {
-	next := r.engine.getRouter(absolutePath)
-	if composed := r.mixComposed(absolutePath); composed!=nil {
+	next, find := r.engine.getRouter(absolutePath)
+	if _, composed := r.engine.mixComposed(absolutePath); composed!=nil {
 		next.composed = compose(composed, handler)
 	} else {
 		next.composed = compose(handler)
+	}
+	if !find {
 		r.engine.addRoute(next)
 	}
 	return next
 }
 
 func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose) *Router {
-	next := r.engine.getRouter(absolutePath)
-	if composed := r.mixComposed(absolutePath); composed!=nil {
+	next, find := r.engine.getRouter(absolutePath)
+	if _, composed := r.engine.mixComposed(absolutePath); composed!=nil {
 		next.composed = compose(composed)
 	}
 	method := method{key:httpMethod, handler:handler}
 	next.methods = append(next.methods, method)
-	r.engine.addRoute(next)
+	if !find {
+		r.engine.addRoute(next)
+	}
 	return next
 }
 
 func (r *Router) Route(relativePath string, handles ...HandlerRoute) *Router {
 	absolutePath := joinPaths(r.Path, relativePath)
-	next := r.engine.getRouter(absolutePath)
+	next, _ := r.engine.getRouter(absolutePath)
 	for _, handle := range handles {
 		handle(next)
 	}

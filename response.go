@@ -25,8 +25,9 @@ type (
 	}
 	responseWriter struct {
 		http.ResponseWriter
-		size   int
-		status int
+		size   		int
+		status 		int
+		writeNow	bool
 	}
 )
 
@@ -36,6 +37,7 @@ func (w *responseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
 	w.size = noWritten
 	w.status = defaultStatus
+	w.writeNow = false
 }
 
 func (w *responseWriter) WriteHeader(code int) {
@@ -56,7 +58,7 @@ func (w *responseWriter) WriteHeaderNow() {
 
 func (w *responseWriter) Write(data []byte) (n int, err error) {
 	//custom 404 error
-	if w.status == 404 {
+	if w.status == 404 && !w.writeNow {
 		return len(data), nil
 	}
 	w.WriteHeaderNow()

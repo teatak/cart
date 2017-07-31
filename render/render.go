@@ -4,7 +4,9 @@
 
 package render
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type Render interface {
 	Render(http.ResponseWriter) error
@@ -23,7 +25,5 @@ var (
 
 func writeContentType(w http.ResponseWriter, value []string) {
 	header := w.Header()
-	if val := header["Content-Type"]; len(val) == 0 {
-		header["Content-Type"] = value
-	}
+	header["Content-Type"] = value
 }

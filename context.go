@@ -32,7 +32,6 @@ type Context struct {
 
 	Router		*Router
 	Params   	Params
-
 	Keys     	map[string]interface{}
 }
 
@@ -118,6 +117,7 @@ func (c *Context) Status(code int) {
 }
 
 func (c *Context) Render(code int, r render.Render) {
+	c.response.writeNow = true
 	c.Status(code)
 
 	if !bodyAllowedForStatus(code) {
@@ -135,6 +135,9 @@ func (c *Context) Render(code int, r render.Render) {
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, path string, obj interface{}) {
+	if c.Router.engine.TemplatePath != "" {
+		path = 	c.Router.engine.TemplatePath+path
+	}
 	tpl,err := template.ParseFiles(path)
 	if err!=nil {
 		panic(err)
