@@ -98,7 +98,7 @@ func (e *Engine) serveHTTP(c *Context) {
 			if e.NotFound != nil {
 				e.NotFound(c);
 			} else {
-				c.Response.WriteString("404 Not Found")
+				c.String(404,"404 Not Found")
 			}
 		}
 	}
