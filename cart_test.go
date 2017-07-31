@@ -27,6 +27,7 @@ func Equal(t *testing.T,a interface{},b interface{},err string) {
 	}
 }
 
+//handlers
 func handle (c *Context) {
 	debugPrint("handle")
 	c.Response.Write([]byte(c.Request.URL.Path))
@@ -46,10 +47,9 @@ func handleEnd (c *Context, next Next) {
 
 func TestEngine(t *testing.T) {
 	c := New()
-	c.Use("/*file", Static("../public", true))
+	c.Use("/",handleAll)
 
 	w := new(mockResponseWriter)
-
 	req, _ := http.NewRequest("GET", "/", nil)
 	c.ServeHTTP(w, req)
 }
