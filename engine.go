@@ -139,7 +139,11 @@ func (e *Engine) serveHTTP(c *Context) {
 
 
 	if r, find := e.findRouter("/"); find {
-		r.composed(c,final404)()
+		if r.composed!=nil {
+			r.composed(c,final404)()
+		} else {
+			final404()
+		}
 	} else {
 		final404()
 	}

@@ -50,8 +50,8 @@ func (r *Router) use(absolutePath string, handler HandlerCompose) *Router {
 		next.composed = compose(composed, handler)
 	} else {
 		next.composed = compose(handler)
+		r.engine.addRoute(next)
 	}
-	r.engine.addRoute(next)
 	return next
 }
 
