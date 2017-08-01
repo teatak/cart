@@ -74,7 +74,7 @@ func (r *Router) ANY(handler Handler) *Router {
 }
 
 func (r *Router) Handle(httpMethod string, handler HandlerFinal) *Router {
-	tempHandler := func(c *Context,nex Next) {
+	tempHandler := func(c *Context,next Next) {
 		handler(c);
 	}
 	return r.handle(httpMethod,r.Path,makeCompose(tempHandler))
