@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"strings"
 	"net"
-	"math"
 )
 
 type Param struct {
