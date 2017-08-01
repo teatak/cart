@@ -317,6 +317,16 @@ func (c *Context) ErrorHTML(code int, title, content string) {
         margin: 10px 0;
         padding: 10px;
         background: linen;
+        font-size: 14px;
+    	line-height: 150%;
+    }
+    .content pre {
+        white-space: pre-wrap;
+		white-space: -moz-pre-wrap;
+		white-space: -pre-wrap;
+		white-space: -o-pre-wrap;
+		word-wrap: break-word;
+		word-break: break-all;
     }
     footer {
     	text-align: center;
