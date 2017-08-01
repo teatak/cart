@@ -6,17 +6,22 @@ import (
 	"os"
 	"time"
 	"strings"
+	"html/template"
+	"github.com/gimke/cart/render"
 )
 
 type Engine struct {
 	Router
+	delims          render.Delims
 	routers			map[string]*Router	//saved routers
 	engine			*Engine
 	pool        	sync.Pool
 	tree			*node 	//match trees
 
 	NotFound		HandlerFinal
-	TemplatePath	string
+
+	FuncMap         template.FuncMap
+	Template 		*template.Template
 
 
 	ForwardedByClientIP		bool
@@ -216,3 +221,17 @@ func (e *Engine) Run(addr ...string) (err error) {
 	return
 }
 
+func (engine *Engine) LoadHTMLGlob(pattern string) {
+
+	templ := template.Must(template.New("").Delims(engine.delims.Left, engine.delims.Right).Funcs(engine.FuncMap).ParseGlob(pattern))
+	engine.SetHTMLTemplate(templ)
+
+}
+
+func (engine *Engine) SetHTMLTemplate(templ *template.Template) {
+	engine.Template = templ.Funcs(engine.FuncMap)
+}
+
+func (engine *Engine) SetFuncMap(funcMap template.FuncMap) {
+	engine.FuncMap = funcMap
+}

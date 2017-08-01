@@ -194,42 +194,24 @@ func (c *Context) Render(code int, r render.Render) {
 // HTML renders the HTTP template specified by its file name.
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
-func (c *Context) HTML(code int, path string, obj interface{}) {
-	if c.Router.engine.TemplatePath != "" {
-		path = 	c.Router.engine.TemplatePath+path
-	}
-	tpl,err := template.ParseFiles(path)
-	if err!=nil {
-		panic(err)
-	}
-	c.Render(code, render.HTML{Template: tpl, Data:obj})
+func (c *Context) HTML(code int, name string, obj interface{}) {
+	instance := render.HTML{Template: c.Router.engine.Template, Name:name, Data:obj}
+	c.Render(code, instance)
 }
 
 //
-func (c *Context) HTMLLayout(code int, layout, path string, obj interface{}) {
-	if c.Router.engine.TemplatePath != "" {
-		layout = 	c.Router.engine.TemplatePath+layout
-		path = 	c.Router.engine.TemplatePath+path
-	}
-	tpl,err := template.ParseFiles(path)
-	if err!=nil {
-		panic(err)
-	}
+func (c *Context) HTMLLayout(code int, layout, name string, obj interface{}) {
+
+	tpl := c.Router.engine.Template
 	var buf bytes.Buffer
-	tpl.Execute(&buf,obj);
-
+	tpl.ExecuteTemplate(&buf, name, obj)
 	html := buf.String()
-
-	tpllayout,errlayout := template.ParseFiles(layout)
-	if errlayout!=nil {
-		panic(err)
-	}
 
 	//rebuild obj
 	tmp := obj.(H)
 	tmp["__CONTENT"] = template.HTML(html)
 
-	c.Render(code, render.HTML{Template: tpllayout, Data:tmp})
+	c.Render(code, render.HTML{Template: tpl, Name:layout, Data:tmp})
 }
 
 
