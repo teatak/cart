@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"strings"
 	"net"
+	"math"
 )
 
 type Param struct {
@@ -31,6 +32,7 @@ type Context struct {
 	response 	responseWriter
 	Request   	*http.Request
 	Response    ResponseWriter
+
 
 	Router		*Router
 	Params   	Params
@@ -59,6 +61,13 @@ func bodyAllowedForStatus(status int) bool {
 		return false
 	}
 	return true
+}
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
+func (c *Context) AbortWithStatus(code int) {
+	c.Status(code)
+	c.Response.WriteHeaderNow()
 }
 
 // Header is a intelligent shortcut for c.Writer.Header().Set(key, value)
