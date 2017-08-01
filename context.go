@@ -74,7 +74,7 @@ func (c *Context) AbortRender(code int, request string, err interface{}) {
 	if IsDebugging() {
 		c.ErrorHTML(code,
 			"Internal Server Error",
-			"<pre>"+request+"\n\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>")
+			"<pre>"+request+"\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>")
 	} else {
 		c.ErrorHTML(code,
 			"Internal Server Error",
@@ -302,7 +302,7 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 func (c *Context) ErrorHTML(code int, title, content string) {
 	tplString := `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <title>{{.Title}}</title>
@@ -321,6 +321,8 @@ func (c *Context) ErrorHTML(code int, title, content string) {
     	line-height: 150%;
     }
     .content pre {
+    	padding: 0;
+    	margin: 0;
         white-space: pre-wrap;
 		white-space: -moz-pre-wrap;
 		white-space: -pre-wrap;
