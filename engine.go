@@ -104,8 +104,8 @@ func (e *Engine) serveHTTP(c *Context) {
 				e.NotFound(c);
 			} else {
 				c.ErrorHTML(404, H{
-					"Title":"Error 404",
-					"Content":template.HTML("The Page <b style='color:red'>"+path+"</b> Not Found"),
+					"Title":"404 Not Found",
+					"Content":template.HTML("The page <b style='color:red'>"+path+"</b> is not found"),
 				})
 				//c.String(404,"404 Not Found")
 			}
