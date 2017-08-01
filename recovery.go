@@ -42,6 +42,27 @@ func RecoveryWithWriter(out io.Writer) Handler {
 	}
 }
 
+func RecoveryRender() Handler {
+	out := DefaultErrorWriter
+	var logger *log.Logger
+	if out != nil {
+		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
+	}
+	return func(c *Context, next Next) {
+		defer func() {
+			if err := recover(); err != nil {
+				httprequest, _ := httputil.DumpRequest(c.Request, false)
+				if logger != nil {
+					stack := stack(3)
+					logger.Printf("[Recovery] panic recovered:\n%s\n%s\n%s%s", string(httprequest), err, stack, reset)
+				}
+				c.AbortRender(500, string(httprequest), err)
+			}
+		}()
+		next()
+	}
+}
+
 // stack returns a nicely formated stack frame, skipping skip frames
 func stack(skip int) []byte {
 	buf := new(bytes.Buffer) // the returned data

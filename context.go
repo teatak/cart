@@ -69,6 +69,21 @@ func (c *Context) AbortWithStatus(code int) {
 	c.Response.WriteHeaderNow()
 }
 
+func (c *Context) AbortRender(code int, request string, err interface{}) {
+	stack := stack(3)
+	if IsDebugging() {
+		c.ErrorHTML(code, H{
+			"Title":"Internal Server Error",
+			"Content":template.HTML("<pre>"+request+"\n\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>"),
+		})
+	} else {
+		c.ErrorHTML(code, H{
+			"Title":"Internal Server Error",
+			"Content":template.HTML("<pre>"+(err.(error)).Error()+"</pre>"),
+		})
+	}
+}
+
 // Header is a intelligent shortcut for c.Writer.Header().Set(key, value)
 func (c *Context) Header(key, value string) {
 	if len(value) == 0 {
@@ -284,3 +299,27 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 	}
 }
 
+
+//error
+
+
+func (c *Context) ErrorHTML(code int, obj interface{}) {
+	tplString := `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{.Title}}</title>
+</head>
+<body>
+<h1>{{.Title}}</h1>
+<div>{{.Content}}</div>
+</body>
+</html>
+	`
+	tpl,err := template.New("ErrorHTML").Parse(tplString)
+	if err!=nil {
+		panic(err)
+	}
+	c.Render(code, render.HTML{Template: tpl, Data:obj})
+}
