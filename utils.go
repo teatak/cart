@@ -37,6 +37,15 @@ func (h H) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return nil
 }
 
+func filterFlags(content string) string {
+	for i, char := range content {
+		if char == ' ' || char == ';' {
+			return content[:i]
+		}
+	}
+	return content
+}
+
 func resolveAddress(addr []string) string {
 	switch len(addr) {
 	case 0:

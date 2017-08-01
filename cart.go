@@ -14,7 +14,12 @@ const Version = "v1.0.0"
 
 func New() *Engine {
 	debugWarning()
-	e := &Engine{Router: Router{Path:"/"}}
+	e := &Engine{
+		Router: Router{Path:"/"},
+		ForwardedByClientIP:    true,
+		AppEngine:              false,
+	}
+
 	e.init()
 	return e
 }

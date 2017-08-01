@@ -17,6 +17,10 @@ type Engine struct {
 
 	NotFound		HandlerFinal
 	TemplatePath	string
+
+
+	ForwardedByClientIP		bool
+	AppEngine				bool
 }
 
 var _ http.Handler = &Engine{}

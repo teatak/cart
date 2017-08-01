@@ -7,6 +7,8 @@ import (
 	"github.com/gimke/cart/render"
 	"io"
 	"bytes"
+	"strings"
+	"net"
 )
 
 type Param struct {
@@ -114,6 +116,43 @@ func (c *Context) Cookie(name string) (string, error) {
 
 func (c *Context) Status(code int) {
 	c.response.WriteHeader(code)
+}
+
+// ClientIP implements a best effort algorithm to return the real client IP, it parses
+// X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
+// Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
+func (c *Context) ClientIP() string {
+	if c.Router.engine.ForwardedByClientIP {
+		clientIP := c.requestHeader("X-Forwarded-For")
+		if index := strings.IndexByte(clientIP, ','); index >= 0 {
+			clientIP = clientIP[0:index]
+		}
+		clientIP = strings.TrimSpace(clientIP)
+		if len(clientIP) > 0 {
+			return clientIP
+		}
+		clientIP = strings.TrimSpace(c.requestHeader("X-Real-Ip"))
+		if len(clientIP) > 0 {
+			return clientIP
+		}
+	}
+
+	if c.Router.engine.AppEngine {
+		if addr := c.Request.Header.Get("X-Appengine-Remote-Addr"); addr != "" {
+			return addr
+		}
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
+}
+
+// ContentType returns the Content-Type header of the request.
+func (c *Context) ContentType() string {
+	return filterFlags(c.requestHeader("Content-Type"))
 }
 
 func (c *Context) Render(code int, r render.Render) {
