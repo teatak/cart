@@ -26,6 +26,6 @@ func New() *Engine {
 
 func Default() *Engine {
 	e := New()
-	e.Use("/",Logger(),RecoveryRender())
+	e.Use("/",Logger(),RecoveryRender(DefaultErrorWriter))
 	return e
 }

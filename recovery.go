@@ -42,8 +42,7 @@ func RecoveryWithWriter(out io.Writer) Handler {
 	}
 }
 
-func RecoveryRender() Handler {
-	out := DefaultErrorWriter
+func RecoveryRender(out io.Writer) Handler {
 	var logger *log.Logger
 	if out != nil {
 		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
