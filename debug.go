@@ -87,7 +87,7 @@ func debugPrint(format string, values ...interface{}) {
 }
 
 func debugWarning() {
-	print(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
+	debugPrint(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
  - using env:	export CART_MODE=release
  - using code:	cart.SetMode(cart.ReleaseMode)
   ██████╗ █████╗ ██████╗ ████████╗
