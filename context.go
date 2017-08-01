@@ -72,15 +72,13 @@ func (c *Context) AbortWithStatus(code int) {
 func (c *Context) AbortRender(code int, request string, err interface{}) {
 	stack := stack(3)
 	if IsDebugging() {
-		c.ErrorHTML(code, H{
-			"Title":"Internal Server Error",
-			"Content":template.HTML("<pre>"+request+"\n\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>"),
-		})
+		c.ErrorHTML(code,
+			"Internal Server Error",
+			"<pre>"+request+"\n\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>")
 	} else {
-		c.ErrorHTML(code, H{
-			"Title":"Internal Server Error",
-			"Content":template.HTML("<pre>"+(err.(error)).Error()+"</pre>"),
-		})
+		c.ErrorHTML(code,
+			"Internal Server Error",
+			"<pre>"+(err.(error)).Error()+"</pre>")
 	}
 }
 
@@ -301,7 +299,7 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 
 
 //error
-func (c *Context) ErrorHTML(code int, obj interface{}) {
+func (c *Context) ErrorHTML(code int, title, content string) {
 	tplString := `
 <!DOCTYPE html>
 <html lang="en">
@@ -347,6 +345,10 @@ func (c *Context) ErrorHTML(code int, obj interface{}) {
 	tpl,err := template.New("ErrorHTML").Parse(tplString)
 	if err!=nil {
 		panic(err)
+	}
+	obj := H{
+		"Title":title,
+		"Content":template.HTML(content),
 	}
 	c.Render(code, render.HTML{Template: tpl, Data:obj})
 }

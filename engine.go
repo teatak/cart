@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 	"strings"
-	"html/template"
 )
 
 type Engine struct {
@@ -103,10 +102,9 @@ func (e *Engine) serveHTTP(c *Context) {
 			if e.NotFound != nil {
 				e.NotFound(c);
 			} else {
-				c.ErrorHTML(404, H{
-					"Title":"404 Not Found",
-					"Content":template.HTML("The page <b style='color:red'>"+path+"</b> is not found"),
-				})
+				c.ErrorHTML(404,
+					"404 Not Found",
+					"The page <b style='color:red'>"+path+"</b> is not found")
 				//c.String(404,"404 Not Found")
 			}
 		}
