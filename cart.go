@@ -25,7 +25,6 @@ func New() *Engine {
 		AppEngine:              false,
 		delims:                 render.Delims{"{{", "}}"},
 		FuncMap:                template.FuncMap{},
-
 	}
 
 	e.init()
