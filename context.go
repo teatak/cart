@@ -10,6 +10,7 @@ import (
 	"strings"
 	"net"
 	"time"
+	"fmt"
 )
 
 type Param struct {
@@ -73,13 +74,15 @@ func (c *Context) AbortWithStatus(code int) {
 func (c *Context) AbortRender(code int, request string, err interface{}) {
 	stack := stack(3)
 	if IsDebugging() {
+		content := fmt.Sprintf("<pre>%s\n%s\n%s</pre>",request,err,stack)
 		c.ErrorHTML(code,
 			"Internal Server Error",
-			"<pre>"+request+"\n"+(err.(error)).Error()+"\n"+string(stack)+"</pre>")
+			content)
 	} else {
+		content := fmt.Sprintf("<pre>%s</pre>",err)
 		c.ErrorHTML(code,
 			"Internal Server Error",
-			"<pre>"+(err.(error)).Error()+"</pre>")
+			content)
 	}
 }
 
