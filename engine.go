@@ -204,7 +204,7 @@ func (e *Engine) init() {
 /*
 Run the server
  */
-func (e *Engine) Run(addr ...string) (err error) {
+func (e *Engine) Run(addr ...string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
 	address := resolveAddress(addr)
 	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), address)
@@ -220,6 +220,25 @@ func (e *Engine) Run(addr ...string) (err error) {
 	err = server.ListenAndServe()
 	return
 }
+
+/*
+RunTLS
+ */
+func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *http.Server,err error) {
+	defer func() { debugError(err) }()
+	debugPrint("PID:%d Listening and serving HTTPS on %s\n", os.Getpid(), addr)
+	server = &http.Server{
+		Addr: addr,
+		Handler: e,
+		ReadTimeout: time.Second * 90,
+		//ReadHeaderTimeout: time.Second * 90,
+		WriteTimeout: time.Second * 90,
+		//IdleTimeout: time.Second * 90,
+	}
+	err = server.ListenAndServeTLS(certFile,keyFile)
+	return
+}
+
 
 func (engine *Engine) LoadHTMLGlob(pattern string) {
 
