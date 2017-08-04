@@ -48,6 +48,7 @@ func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.Response = &c.response
 	c.Request = req
 	c.Params = c.Params[0:0]
+	c.Router = nil
 	c.Keys = nil
 }
 
