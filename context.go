@@ -205,7 +205,7 @@ func (c *Context) HTML(code int, name string, obj interface{}) {
 }
 
 //
-func (c *Context) HTMLLayout(code int, layout, name string, obj interface{}) {
+func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
 
 	tpl := c.Router.Engine.Template
 	var buf bytes.Buffer
