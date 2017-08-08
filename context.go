@@ -148,7 +148,7 @@ func (c *Context) Status(code int) {
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
-	if c.Router.engine.ForwardedByClientIP {
+	if c.Router.Engine.ForwardedByClientIP {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		if index := strings.IndexByte(clientIP, ','); index >= 0 {
 			clientIP = clientIP[0:index]
@@ -163,7 +163,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if c.Router.engine.AppEngine {
+	if c.Router.Engine.AppEngine {
 		if addr := c.Request.Header.Get("X-Appengine-Remote-Addr"); addr != "" {
 			return addr
 		}
@@ -200,14 +200,14 @@ func (c *Context) Render(code int, r render.Render) {
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, name string, obj interface{}) {
-	instance := render.HTML{Template: c.Router.engine.Template, Name:name, Data:obj}
+	instance := render.HTML{Template: c.Router.Engine.Template, Name:name, Data:obj}
 	c.Render(code, instance)
 }
 
 //
 func (c *Context) HTMLLayout(code int, layout, name string, obj interface{}) {
 
-	tpl := c.Router.engine.Template
+	tpl := c.Router.Engine.Template
 	var buf bytes.Buffer
 	tpl.ExecuteTemplate(&buf, name, obj)
 	html := buf.String()

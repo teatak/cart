@@ -50,7 +50,7 @@ func (e *Engine) getRouter(absolutePath string) (*Router, bool) {
 	if router == nil {
 		find = false
 		router = &Router{
-			engine:e,
+			Engine:e,
 			Path:absolutePath,
 			methods:make([]method,0),
 		}
@@ -194,7 +194,7 @@ func (e *Engine) init() {
 	e.Router = Router{
 		Path: "/",
 	}
-	e.Router.engine = e
+	e.Router.Engine = e
 	e.pool.New = func() interface{} {
 		return e.allocateContext()
 	}
