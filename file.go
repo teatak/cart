@@ -20,6 +20,15 @@ func Favicon(relativePath string) Handler {
 	}
 }
 
+func File(relativePath string) Handler {
+	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
+		panic("URL parameters can not be used when serving a static file")
+	}
+	return func(c *Context, next Next) {
+		http.ServeFile(c.Response, c.Request, relativePath)
+	}
+}
+
 func Static(relativePath string, listDirectory bool) Handler {
 	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("URL parameters can not be used when serving a static folder")
