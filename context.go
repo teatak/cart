@@ -204,22 +204,22 @@ func (c *Context) HTML(code int, name string, obj interface{}) {
 	c.Render(code, instance)
 }
 
-//
+//render layout html
 func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
+	html := c.HTMLString(name, obj);
+	tmp := obj.(H)
+	tmp["__CONTENT"] = template.HTML(html)
+	c.Render(code, render.HTML{Template: c.Router.Engine.Template, Name:layout, Data:tmp})
+}
 
+//render Template to String
+func (c *Context) HTMLString(name string, obj interface{}) string {
 	tpl := c.Router.Engine.Template
 	var buf bytes.Buffer
 	tpl.ExecuteTemplate(&buf, name, obj)
 	html := buf.String()
-
-	//rebuild obj
-	tmp := obj.(H)
-	tmp["__CONTENT"] = template.HTML(html)
-
-	c.Render(code, render.HTML{Template: tpl, Name:layout, Data:tmp})
+	return html
 }
-
-
 // IndentedJSON serializes the given struct as pretty JSON (indented + endlines) into the response body.
 // It also sets the Content-Type as "application/json".
 // WARNING: we recommend to use this only for development purposes since printing pretty JSON is
