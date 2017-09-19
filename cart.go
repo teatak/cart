@@ -27,7 +27,6 @@ func New() *Engine {
 		FuncMap:                template.FuncMap{},
 	}
 
-
 	e.init()
 	return e
 }
