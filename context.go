@@ -65,6 +65,10 @@ func bodyAllowedForStatus(status int) bool {
 	return true
 }
 
+func (c *Context) Param(key string) (string, bool) {
+	return c.Params.Get(key)
+}
+
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(code int) {
