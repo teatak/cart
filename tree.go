@@ -2,8 +2,8 @@ package cart
 
 import (
 	"strings"
-	"unicode/utf8"
 	"unicode"
+	"unicode/utf8"
 )
 
 func min(a, b int) int {
@@ -139,7 +139,7 @@ func (n *node) addRoute(path string, handle interface{}) {
 
 					// Check if the wildcard matches
 					if len(path) >= len(n.path) && n.path == path[:len(n.path)] &&
-					// Check for longer wildcard, e.g. :name and :names
+						// Check for longer wildcard, e.g. :name and :names
 						(len(n.path) >= len(path) || path[len(n.path)] == '/') {
 						continue walk
 					} else {

@@ -23,5 +23,5 @@ func TestParams(t *testing.T) {
 
 func TestContext(t *testing.T) {
 	c := &Context{}
-	c.reset(nil,nil)
+	c.reset(nil, nil)
 }

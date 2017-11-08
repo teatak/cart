@@ -2,12 +2,12 @@ package cart
 
 import (
 	"bytes"
-	"runtime"
+	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http/httputil"
-	"fmt"
-	"io/ioutil"
+	"runtime"
 )
 
 var (

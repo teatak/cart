@@ -7,7 +7,7 @@ A HTTP web framework written in golang
 	██║     ██╔══██║██╔══██╗   ██║
 	╚██████╗██║  ██║██║  ██║   ██║
 	 ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
- */
+*/
 package cart
 
 import (
@@ -20,11 +20,11 @@ const Version = "v1.0.3"
 func New() *Engine {
 	debugWarning()
 	e := &Engine{
-		Router: Router{Path:"/"},
-		ForwardedByClientIP:    true,
-		AppEngine:              false,
-		delims:                 render.Delims{"{{", "}}"},
-		FuncMap:                template.FuncMap{},
+		Router:              Router{Path: "/"},
+		ForwardedByClientIP: true,
+		AppEngine:           false,
+		delims:              render.Delims{"{{", "}}"},
+		FuncMap:             template.FuncMap{},
 	}
 
 	e.init()
@@ -33,6 +33,6 @@ func New() *Engine {
 
 func Default() *Engine {
 	e := New()
-	e.Use("/",Logger(),RecoveryRender(DefaultErrorWriter))
+	e.Use("/", Logger(), RecoveryRender(DefaultErrorWriter))
 	return e
 }

@@ -1,10 +1,10 @@
 package cart
 
 import (
-	"log"
-	"time"
-	"os"
 	"io"
+	"log"
+	"os"
+	"time"
 )
 
 var (
@@ -54,7 +54,6 @@ func SetMode(value string) {
 	}
 }
 
-
 func init() {
 	log.SetFlags(0)
 }
@@ -62,7 +61,7 @@ func init() {
 /*
 IsDebugging returns true if the framework is running in debug mode.
 Use SetMode(cart.Release) to switch to disable the debug mode.
- */
+*/
 func IsDebugging() bool {
 	return cartMode == debugCode
 }
@@ -75,13 +74,13 @@ func debugPrint(format string, values ...interface{}) {
 			isTerm = false
 		}
 
-		var yellowColor,resetColor string
+		var yellowColor, resetColor string
 		if isTerm {
 			yellowColor = yellow
 			resetColor = reset
 		}
 		now := time.Now().Format("2006-01-02 15:04:05")
-		values = append([]interface{}{yellowColor,resetColor,now}, values... )
+		values = append([]interface{}{yellowColor, resetColor, now}, values...)
 		log.Printf("%s[CART-DEBUG]%s %v "+format, values...)
 	}
 }
@@ -107,13 +106,13 @@ func debugError(err error) {
 			if _, ok := DefaultWriter.(*os.File); !ok || disableColor {
 				isTerm = false
 			}
-			var redColor,resetColor string
+			var redColor, resetColor string
 			if isTerm {
 				redColor = red
 				resetColor = reset
 			}
 			now := time.Now().Format("2006-01-02 15:04:05")
-			values := append([]interface{}{redColor,resetColor,now,err})
+			values := append([]interface{}{redColor, resetColor, now, err})
 			log.Printf("%s[CART-ERROR]%s %v %v", values...)
 		}
 	}

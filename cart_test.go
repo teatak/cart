@@ -1,8 +1,8 @@
 package cart
 
 import (
-	"testing"
 	"net/http"
+	"testing"
 )
 
 type mockResponseWriter struct{}
@@ -21,25 +21,25 @@ func (m *mockResponseWriter) WriteString(s string) (n int, err error) {
 
 func (m *mockResponseWriter) WriteHeader(int) {}
 
-func Equal(t *testing.T,a interface{},b interface{},err string) {
-	if(a != b) {
+func Equal(t *testing.T, a interface{}, b interface{}, err string) {
+	if a != b {
 		t.Error(err)
 	}
 }
 
 //handlers
-func handle (c *Context) {
+func handle(c *Context) {
 	debugPrint("handle")
 	c.Response.Write([]byte(c.Request.URL.Path))
 }
 
-func handleAll (c *Context, next Next) {
+func handleAll(c *Context, next Next) {
 	debugPrint("handleAll begin")
 	next()
 	debugPrint("handleAll end")
 }
 
-func handleEnd (c *Context, next Next) {
+func handleEnd(c *Context, next Next) {
 	debugPrint("handleEnd begin")
 	next()
 	debugPrint("handleEnd end")
@@ -47,7 +47,7 @@ func handleEnd (c *Context, next Next) {
 
 func TestEngine(t *testing.T) {
 	c := New()
-	c.Use("/",handleAll)
+	c.Use("/", handleAll)
 
 	w := new(mockResponseWriter)
 	req, _ := http.NewRequest("GET", "/", nil)

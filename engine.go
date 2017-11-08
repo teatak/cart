@@ -1,31 +1,30 @@
 package cart
 
 import (
-	"sync"
+	"github.com/gimke/cart/render"
+	"html/template"
 	"net/http"
 	"os"
-	"time"
 	"strings"
-	"html/template"
-	"github.com/gimke/cart/render"
+	"sync"
+	"time"
 )
 
 type Engine struct {
 	Router
-	delims          render.Delims
-	routers			map[string]*Router	//saved routers
-	engine			*Engine
-	pool        	sync.Pool
-	tree			*node 	//match trees
+	delims  render.Delims
+	routers map[string]*Router //saved routers
+	engine  *Engine
+	pool    sync.Pool
+	tree    *node //match trees
 
-	NotFound		HandlerFinal
+	NotFound HandlerFinal
 
-	FuncMap         template.FuncMap
-	Template 		*template.Template
+	FuncMap  template.FuncMap
+	Template *template.Template
 
-
-	ForwardedByClientIP		bool
-	AppEngine				bool
+	ForwardedByClientIP bool
+	AppEngine           bool
 }
 
 var _ http.Handler = &Engine{}
@@ -50,9 +49,9 @@ func (e *Engine) getRouter(absolutePath string) (*Router, bool) {
 	if router == nil {
 		find = false
 		router = &Router{
-			Engine:e,
-			Path:absolutePath,
-			methods:make([]method,0),
+			Engine:  e,
+			Path:    absolutePath,
+			methods: make([]method, 0),
 		}
 	}
 	return router, find
@@ -66,7 +65,7 @@ func (e *Engine) addRoute(router *Router) {
 		e.tree = &node{}
 	}
 	if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
-		debugPrint("Add Router %s",router.Path)
+		debugPrint("Add Router %s", router.Path)
 		e.routers[router.Path] = router
 		e.tree.addRoute(router.Path, router)
 	}
@@ -87,7 +86,7 @@ func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
 	}
 	if m, find := r.getMethod(httpMethod); find {
 		if methods != nil {
-			methods = compose(methods,m)
+			methods = compose(methods, m)
 		} else {
 			methods = compose(m)
 		}
@@ -102,10 +101,10 @@ func (e *Engine) serveHTTP(c *Context) {
 	final404 := func() {
 		// 404 error
 		// make temp router
-		c.Router,_ = e.getRouter(path)
+		c.Router, _ = e.getRouter(path)
 		if c.Response.Size() == -1 && c.Response.Status() == 200 {
 			if e.NotFound != nil {
-				e.NotFound(c);
+				e.NotFound(c)
 			} else {
 				c.ErrorHTML(404,
 					"404 Not Found",
@@ -132,7 +131,7 @@ func (e *Engine) serveHTTP(c *Context) {
 				composed = methods
 			}
 			if composed != nil {
-				composed(c,final404)()
+				composed(c, final404)()
 			} else {
 				final404()
 			}
@@ -158,7 +157,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	r, composed := e.mixComposed(path)
 	if composed != nil {
 		c.Router = r
-		composed(c,final404)()
+		composed(c, final404)()
 	} else {
 		final404()
 	}
@@ -166,7 +165,7 @@ func (e *Engine) serveHTTP(c *Context) {
 }
 
 func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
-	sp := strings.Split(absolutePath,"/")
+	sp := strings.Split(absolutePath, "/")
 	for i, _ := range sp {
 		//find it's self first ..... last is root path / router
 		tempPath := strings.Join(sp[0:len(sp)-i], "/")
@@ -178,7 +177,7 @@ func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
 		}
 		//auto add slash then find
 		if tempPath[len(tempPath)-1] != '/' && tempPath != absolutePath && tempPath != "/" {
-			tempPath = tempPath+"/"
+			tempPath = tempPath + "/"
 			if pr, find := e.findRouter(tempPath); find {
 				return pr, pr.composed
 			}
@@ -187,9 +186,10 @@ func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
 	}
 	return nil, nil
 }
+
 /*
 init new Engine
- */
+*/
 func (e *Engine) init() {
 	e.Router = Router{
 		Path: "/",
@@ -201,17 +201,18 @@ func (e *Engine) init() {
 	e.tree = &node{}
 	e.routers = make(map[string]*Router)
 }
+
 /*
 Run the server
- */
+*/
 func (e *Engine) Run(addr ...string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
 	address := resolveAddress(addr)
 	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), address)
 
 	server = &http.Server{
-		Addr: address,
-		Handler: e,
+		Addr:        address,
+		Handler:     e,
 		ReadTimeout: time.Second * 90,
 		//ReadHeaderTimeout: time.Second * 90,
 		WriteTimeout: time.Second * 90,
@@ -223,22 +224,21 @@ func (e *Engine) Run(addr ...string) (server *http.Server, err error) {
 
 /*
 RunTLS
- */
-func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *http.Server,err error) {
+*/
+func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
 	debugPrint("PID:%d Listening and serving HTTPS on %s\n", os.Getpid(), addr)
 	server = &http.Server{
-		Addr: addr,
-		Handler: e,
+		Addr:        addr,
+		Handler:     e,
 		ReadTimeout: time.Second * 90,
 		//ReadHeaderTimeout: time.Second * 90,
 		WriteTimeout: time.Second * 90,
 		//IdleTimeout: time.Second * 90,
 	}
-	err = server.ListenAndServeTLS(certFile,keyFile)
+	err = server.ListenAndServeTLS(certFile, keyFile)
 	return
 }
-
 
 func (engine *Engine) LoadHTMLGlob(pattern string) {
 

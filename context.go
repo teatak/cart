@@ -1,16 +1,16 @@
 package cart
 
 import (
+	"bytes"
+	"fmt"
+	"github.com/gimke/cart/render"
 	"html/template"
+	"io"
+	"net"
 	"net/http"
 	"net/url"
-	"github.com/gimke/cart/render"
-	"io"
-	"bytes"
 	"strings"
-	"net"
 	"time"
-	"fmt"
 )
 
 type Param struct {
@@ -30,19 +30,18 @@ func (ps Params) Get(name string) (string, bool) {
 }
 
 type Context struct {
-	response 	responseWriter
-	Request   	*http.Request
-	Response    ResponseWriter
+	response responseWriter
+	Request  *http.Request
+	Response ResponseWriter
 
-
-	Router		*Router
-	Params   	Params
-	Keys     	map[string]interface{}
+	Router *Router
+	Params Params
+	Keys   map[string]interface{}
 }
 
 /*
 reset Con
- */
+*/
 func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.response.reset(w)
 	c.Response = &c.response
@@ -79,12 +78,12 @@ func (c *Context) AbortWithStatus(code int) {
 func (c *Context) AbortRender(code int, request string, err interface{}) {
 	stack := stack(3)
 	if IsDebugging() {
-		content := fmt.Sprintf("<pre>%s\n%s\n%s</pre>",request,err,stack)
+		content := fmt.Sprintf("<pre>%s\n%s\n%s</pre>", request, err, stack)
 		c.ErrorHTML(code,
 			"Internal Server Error",
 			content)
 	} else {
-		content := fmt.Sprintf("<pre>%s</pre>",err)
+		content := fmt.Sprintf("<pre>%s</pre>", err)
 		c.ErrorHTML(code,
 			"Internal Server Error",
 			content)
@@ -204,16 +203,16 @@ func (c *Context) Render(code int, r render.Render) {
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, name string, obj interface{}) {
-	instance := render.HTML{Template: c.Router.Engine.Template, Name:name, Data:obj}
+	instance := render.HTML{Template: c.Router.Engine.Template, Name: name, Data: obj}
 	c.Render(code, instance)
 }
 
 //render layout html
 func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
-	html := c.HTMLString(name, obj);
+	html := c.HTMLString(name, obj)
 	tmp := obj.(H)
 	tmp["__CONTENT"] = template.HTML(html)
-	c.Render(code, render.HTML{Template: c.Router.Engine.Template, Name:layout, Data:tmp})
+	c.Render(code, render.HTML{Template: c.Router.Engine.Template, Name: layout, Data: tmp})
 }
 
 //render Template to String
@@ -224,6 +223,7 @@ func (c *Context) HTMLString(name string, obj interface{}) string {
 	html := buf.String()
 	return html
 }
+
 // IndentedJSON serializes the given struct as pretty JSON (indented + endlines) into the response body.
 // It also sets the Content-Type as "application/json".
 // WARNING: we recommend to use this only for development purposes since printing pretty JSON is
@@ -288,7 +288,6 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 	}
 }
 
-
 //error
 func (c *Context) ErrorHTML(code int, title, content string) {
 	tplString := `
@@ -345,15 +344,15 @@ func (c *Context) ErrorHTML(code int, title, content string) {
 </body>
 </html>
 	`
-	tpl,err := template.New("ErrorHTML").Parse(tplString)
-	if err!=nil {
+	tpl, err := template.New("ErrorHTML").Parse(tplString)
+	if err != nil {
 		panic(err)
 	}
 	obj := H{
-		"Title":title,
-		"Content":template.HTML(content),
+		"Title":   title,
+		"Content": template.HTML(content),
 	}
-	c.Render(code, render.HTML{Template: tpl, Data:obj})
+	c.Render(code, render.HTML{Template: tpl, Data: obj})
 }
 
 /************************************/

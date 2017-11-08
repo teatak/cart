@@ -1,10 +1,10 @@
 package cart
 
 import (
-	"net/http"
-	"net"
 	"bufio"
 	"io"
+	"net"
+	"net/http"
 )
 
 const (
@@ -20,14 +20,14 @@ type (
 		http.CloseNotifier
 		WriteString(string) (int, error)
 		WriteHeaderNow()
-		Status()	int
-		Size()		int
+		Status() int
+		Size() int
 	}
 	responseWriter struct {
 		http.ResponseWriter
-		size   		int
-		status 		int
-		writeNow	bool
+		size     int
+		status   int
+		writeNow bool
 	}
 )
 

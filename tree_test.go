@@ -1,11 +1,11 @@
 package cart
 
 import (
-	"regexp"
 	"fmt"
-	"testing"
 	"reflect"
+	"regexp"
 	"strings"
+	"testing"
 )
 
 func printChildren(n *node, prefix string) {

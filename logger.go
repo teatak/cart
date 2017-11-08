@@ -2,11 +2,10 @@ package cart
 
 import (
 	"fmt"
-	"time"
 	"io"
 	"os"
+	"time"
 )
-
 
 func Logger() Handler {
 	return LoggerWithWriter(DefaultWriter)
@@ -44,7 +43,6 @@ func LoggerWithWriter(out io.Writer) Handler {
 		)
 	}
 }
-
 
 func colorForStatus(code int) string {
 	switch {

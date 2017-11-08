@@ -2,8 +2,8 @@ package cart
 
 import (
 	"net/http"
-	"strings"
 	"os"
+	"strings"
 )
 
 func Favicon(relativePath string) Handler {
@@ -36,24 +36,23 @@ func Static(relativePath string, listDirectory bool) Handler {
 	return func(c *Context, next Next) {
 		fs := Dir(relativePath, listDirectory)
 		prefix := c.Router.Path
-		index := strings.LastIndex(prefix,"*")
-		if index!=-1 {
+		index := strings.LastIndex(prefix, "*")
+		if index != -1 {
 			prefix = prefix[0:index]
 		}
-		fileServer := http.StripPrefix(prefix,http.FileServer(fs))
+		fileServer := http.StripPrefix(prefix, http.FileServer(fs))
 		_, nolisting := fs.(*onlyfilesFS)
 		if nolisting {
 			c.Response.WriteHeader(404)
 		}
 		fileServer.ServeHTTP(c.Response, c.Request)
-		if(c.Response.Status() == 404) {
-			c.Response.WriteHeader(200)	//reset status
+		if c.Response.Status() == 404 {
+			c.Response.WriteHeader(200) //reset status
 			next()
 		}
 
 	}
 }
-
 
 type (
 	onlyfilesFS struct {

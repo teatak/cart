@@ -1,13 +1,13 @@
 package cart
 
 import (
-	"testing"
+	"bytes"
 	"errors"
-	"strings"
 	"io"
 	"log"
 	"os"
-	"bytes"
+	"strings"
+	"testing"
 )
 
 func TestColorForMethod(t *testing.T) {
@@ -30,12 +30,12 @@ func TestColorForStatus(t *testing.T) {
 
 func TestIsDebugging(t *testing.T) {
 	SetMode(DebugMode)
-	if(!IsDebugging()) {
-		t.Errorf("Wrong return IsDebugging should true but return %v",IsDebugging())
+	if !IsDebugging() {
+		t.Errorf("Wrong return IsDebugging should true but return %v", IsDebugging())
 	}
 	SetMode(ReleaseMode)
-	if(IsDebugging()) {
-		t.Errorf("Wrong return IsDebugging should false but return %v",IsDebugging())
+	if IsDebugging() {
+		t.Errorf("Wrong return IsDebugging should false but return %v", IsDebugging())
 	}
 }
 
@@ -51,9 +51,9 @@ func TestDebugPrint(t *testing.T) {
 
 	debugPrint("these are |%d %s\n", 2, "error messages")
 	//w.String()
-	s := strings.Split(w.String(),"|")[1]
-	if(s != "2 error messages\n") {
-		t.Errorf("Wrong return debugPrint %s",w.String())
+	s := strings.Split(w.String(), "|")[1]
+	if s != "2 error messages\n" {
+		t.Errorf("Wrong return debugPrint %s", w.String())
 	}
 
 	disableColor = false
@@ -61,6 +61,7 @@ func TestDebugPrint(t *testing.T) {
 	debugError(errors.New("new error"))
 	debugPrint("these are |%d %s\n", 2, "error messages")
 }
+
 //utils
 
 func setup(w io.Writer) {
