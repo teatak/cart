@@ -202,6 +202,19 @@ func (e *Engine) init() {
 	e.routers = make(map[string]*Router)
 }
 
+func (e *Engine) Server(addr ...string) (server *http.Server) {
+	address := resolveAddress(addr)
+	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), address)
+	server = &http.Server{
+		Addr:        address,
+		Handler:     e,
+		ReadTimeout: time.Second * 90,
+		//ReadHeaderTimeout: time.Second * 90,
+		WriteTimeout: time.Second * 90,
+		//IdleTimeout: time.Second * 90,
+	}
+	return
+}
 /*
 Run the server
 */
