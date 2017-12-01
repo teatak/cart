@@ -54,7 +54,6 @@ func SetMode(value string) {
 }
 
 func init() {
-	log.SetFlags(0)
 }
 
 /*
