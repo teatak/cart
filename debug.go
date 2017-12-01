@@ -4,7 +4,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 )
 
 var (
@@ -55,7 +54,6 @@ func SetMode(value string) {
 }
 
 func init() {
-	log.SetFlags(0)
 }
 
 /*
@@ -79,8 +77,7 @@ func debugPrint(format string, values ...interface{}) {
 			yellowColor = yellow
 			resetColor = reset
 		}
-		now := time.Now().Format("2006-01-02 15:04:05")
-		values = append([]interface{}{yellowColor, resetColor, now}, values...)
+		values = append([]interface{}{yellowColor, resetColor}, values...)
 		log.Printf("%s[CART-DEBUG]%s %v "+format, values...)
 	}
 }
@@ -111,8 +108,7 @@ func debugError(err error) {
 				redColor = red
 				resetColor = reset
 			}
-			now := time.Now().Format("2006-01-02 15:04:05")
-			values := append([]interface{}{redColor, resetColor, now, err})
+			values := append([]interface{}{redColor, resetColor, err})
 			log.Printf("%s[CART-ERROR]%s %v %v", values...)
 		}
 	}
