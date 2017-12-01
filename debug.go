@@ -53,9 +53,6 @@ func SetMode(value string) {
 	}
 }
 
-func init() {
-}
-
 /*
 IsDebugging returns true if the framework is running in debug mode.
 Use SetMode(cart.Release) to switch to disable the debug mode.
@@ -78,7 +75,7 @@ func debugPrint(format string, values ...interface{}) {
 			resetColor = reset
 		}
 		values = append([]interface{}{yellowColor, resetColor}, values...)
-		log.Printf("%s[CART-DEBUG]%s %v "+format, values...)
+		log.Printf("%s[CART-DEBUG]%s "+format, values...)
 	}
 }
 
@@ -109,7 +106,7 @@ func debugError(err error) {
 				resetColor = reset
 			}
 			values := append([]interface{}{redColor, resetColor, err})
-			log.Printf("%s[CART-ERROR]%s %v %v", values...)
+			log.Printf("%s[CART-ERROR]%s %v", values...)
 		}
 	}
 }
