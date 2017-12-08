@@ -75,7 +75,7 @@ func debugPrint(format string, values ...interface{}) {
 			resetColor = reset
 		}
 		values = append([]interface{}{yellowColor, resetColor}, values...)
-		log.Printf("%s[CART-DEBUG]%s "+format, values...)
+		log.Printf("%s[DEBUG]%s "+format, values...)
 	}
 }
 
@@ -106,7 +106,7 @@ func debugError(err error) {
 				resetColor = reset
 			}
 			values := append([]interface{}{redColor, resetColor, err})
-			log.Printf("%s[CART-ERROR]%s %v", values...)
+			log.Printf("%s[ERROR]%s %v", values...)
 		}
 	}
 }
