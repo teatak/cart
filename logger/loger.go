@@ -76,9 +76,9 @@ func SetOutput(writer io.Writer) {
 	Logger.error.SetOutput(writer)
 	log.SetOutput(writer)
 	if writer == os.Stdout || writer == os.Stderr {
-		Logger.info.SetPrefix(green+"[INFO]  "+reset)
-		Logger.warn.SetPrefix(yellow+"[WARN]  "+reset)
-		Logger.error.SetPrefix(red+"[ERROR] "+reset)
+		Logger.info.SetPrefix(green + "[INFO]  " + reset)
+		Logger.warn.SetPrefix(yellow + "[WARN]  " + reset)
+		Logger.error.SetPrefix(red + "[ERROR] " + reset)
 		Logger.warn.SetFlags(log.LstdFlags)
 		Logger.info.SetFlags(log.LstdFlags)
 		Logger.error.SetFlags(log.LstdFlags)
