@@ -59,8 +59,6 @@ func init() {
 	Logger.warn = log.New(os.Stderr, "[WARN]  ", log.LstdFlags)
 	Logger.error = log.New(os.Stderr, "[ERROR] ", log.LstdFlags)
 	log.SetOutput(os.Stdout)
-	log.SetPrefix("[LOG]  ")
-	log.SetFlags(log.LstdFlags)
 }
 
 func SetLevel(level Level) {
@@ -81,7 +79,6 @@ func SetOutput(writer io.Writer) {
 		Logger.info.SetPrefix(green+"[INFO]  "+reset)
 		Logger.warn.SetPrefix(yellow+"[WARN]  "+reset)
 		Logger.error.SetPrefix(red+"[ERROR] "+reset)
-		log.SetPrefix(green+"[LOG]  "+reset)
 		Logger.warn.SetFlags(log.LstdFlags)
 		Logger.info.SetFlags(log.LstdFlags)
 		Logger.error.SetFlags(log.LstdFlags)
@@ -90,7 +87,6 @@ func SetOutput(writer io.Writer) {
 		Logger.info.SetPrefix("[INFO]  ")
 		Logger.warn.SetPrefix("[WARN]  ")
 		Logger.error.SetPrefix("[ERROR] ")
-		log.SetPrefix("[LOG]  ")
 		Logger.info.SetFlags(log.Ltime)
 		Logger.warn.SetFlags(log.Ltime)
 		Logger.error.SetFlags(log.Ltime)
