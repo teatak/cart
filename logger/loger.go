@@ -70,6 +70,10 @@ func SetFileOutput(dir string) {
 	SetOutput(writer)
 }
 
+func SetStdout() {
+	SetOutput(os.Stdout)
+}
+
 func SetOutput(writer io.Writer) {
 	Logger.info.SetOutput(writer)
 	Logger.warn.SetOutput(writer)
@@ -79,6 +83,7 @@ func SetOutput(writer io.Writer) {
 		Logger.info.SetPrefix(green + "[INFO]  " + reset)
 		Logger.warn.SetPrefix(yellow + "[WARN]  " + reset)
 		Logger.error.SetPrefix(red + "[ERROR] " + reset)
+		log.SetPrefix(green + "[LOG]  " + reset)
 		Logger.warn.SetFlags(log.LstdFlags)
 		Logger.info.SetFlags(log.LstdFlags)
 		Logger.error.SetFlags(log.LstdFlags)
@@ -87,9 +92,11 @@ func SetOutput(writer io.Writer) {
 		Logger.info.SetPrefix("[INFO]  ")
 		Logger.warn.SetPrefix("[WARN]  ")
 		Logger.error.SetPrefix("[ERROR] ")
+		log.SetPrefix("[LOG]  ")
 		Logger.info.SetFlags(log.Ltime)
 		Logger.warn.SetFlags(log.Ltime)
 		Logger.error.SetFlags(log.Ltime)
+		log.SetFlags(log.Ltime)
 	}
 }
 
