@@ -297,7 +297,7 @@ func (c *Context) ErrorHTML(code int, title, content string) {
     <meta charset="UTF-8">
     <title>{{.Title}}</title>
     <style>
-    .titile {
+    .title {
 		display: block;
     	font-size: 2em;
     	font-weight: bold;
@@ -335,7 +335,7 @@ func (c *Context) ErrorHTML(code int, title, content string) {
     </style>
 </head>
 <body>
-<div class="titile">{{.Title}}</div>
+<div class="title">{{.Title}}</div>
 <div class="content">{{.Content}}</div>
 <footer>
 	<span>Powered by Cart</span>
