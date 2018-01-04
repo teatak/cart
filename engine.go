@@ -216,6 +216,16 @@ func (e *Engine) Server(addr ...string) (server *http.Server) {
 	return
 }
 
+func (e *Engine) ServerKeepAlive(addr ...string) (server *http.Server) {
+	address := resolveAddress(addr)
+	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), address)
+	server = &http.Server{
+		Addr:        address,
+		Handler:     e,
+	}
+	return
+}
+
 /*
 Run the server
 */
