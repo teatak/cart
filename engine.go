@@ -64,11 +64,12 @@ func (e *Engine) addRoute(router *Router) {
 	if e.tree == nil {
 		e.tree = &node{}
 	}
-	if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
-		debugPrint("Add Router %s", router.Path)
-		e.routers[router.Path] = router
-		e.tree.addRoute(router.Path, router)
-	}
+	//add router
+	debugPrint("Add Router %s", router.Path)
+	e.routers[router.Path] = router
+	e.tree.addRoute(router.Path, router)
+	//if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
+	//}
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
