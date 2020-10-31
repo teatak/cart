@@ -15,6 +15,7 @@
 
 ## Using middleware
 ```go
+1
 func main() {
 	c.Use("/favicon.ico", cart.Favicon("./public/favicon.ico"))
 	c.Use("/", func(context *cart.Context, next cart.Next) {
