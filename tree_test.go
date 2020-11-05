@@ -9,7 +9,7 @@ import (
 )
 
 func printChildren(n *node, prefix string) {
-	fmt.Printf(" %02d:%02d %s%s[%d] %v %t %d \r\n", n.priority, n.maxParams, prefix, n.path, len(n.children), n.handle, n.wildChild, n.nType)
+	fmt.Printf(" %02d %s%s[%d] %v %t %d \r\n", n.priority, prefix, n.path, len(n.children), n.handle, n.wildChild, n.nType)
 	for l := len(n.path); l > 0; l-- {
 		prefix += " "
 	}
@@ -38,7 +38,7 @@ type testRequests []struct {
 
 func checkRequests(t *testing.T, tree *node, requests testRequests) {
 	for _, request := range requests {
-		handler, ps, _ := tree.getValue(request.path)
+		handler, ps, _ := tree.getValue(request.path, getParams)
 		if handler == nil {
 			if !request.nilHandler {
 				t.Errorf("handle mismatch for route '%s': Expected non-nil handle", request.path)
@@ -91,23 +91,7 @@ func checkMaxParams(t *testing.T, n *node) uint8 {
 		maxParams++
 	}
 
-	if n.maxParams != maxParams {
-		t.Errorf(
-			"maxParams mismatch for node '%s': is %d, should be %d",
-			n.path, n.maxParams, maxParams,
-		)
-	}
-
 	return maxParams
-}
-
-func TestCountParams(t *testing.T) {
-	if countParams("/path/:param1/static/*catch-all") != 2 {
-		t.Fail()
-	}
-	if countParams(strings.Repeat("/:param", 256)) != 255 {
-		t.Fail()
-	}
 }
 
 func TestTreeAddAndGet(t *testing.T) {
@@ -430,7 +414,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/doc/",
 	}
 	for _, route := range tsrRoutes {
-		handler, _, tsr := tree.getValue(route)
+		handler, _, tsr := tree.getValue(route, getParams)
 		if handler != nil {
 			t.Fatalf("non-nil handler for TSR route '%s", route)
 		} else if !tsr {
@@ -447,7 +431,7 @@ func TestTreeTrailingSlashRedirect(t *testing.T) {
 		"/api/world/abc",
 	}
 	for _, route := range noTsrRoutes {
-		handler, _, tsr := tree.getValue(route)
+		handler, _, tsr := tree.getValue(route, getParams)
 		if handler != nil {
 			t.Fatalf("non-nil handler for No-TSR route '%s", route)
 		} else if tsr {
@@ -466,7 +450,7 @@ func TestTreeRootTrailingSlashRedirect(t *testing.T) {
 		t.Fatalf("panic inserting test route: %v", recv)
 	}
 
-	handler, _, tsr := tree.getValue("/")
+	handler, _, tsr := tree.getValue("/", getParams)
 	if handler != nil {
 		t.Fatalf("non-nil handler")
 	} else if tsr {
@@ -500,16 +484,16 @@ func TestTreeFindCaseInsensitivePath(t *testing.T) {
 		"/doc/go/away",
 		"/no/a",
 		"/no/b",
-		//"/Π",
-		//"/u/apfêl/",
-		//"/u/äpfêl/",
-		//"/u/öpfêl",
-		//"/v/Äpfêl/",
-		//"/v/Öpfêl",
-		//"/w/♬",  // 3 byte
-		//"/w/♭/", // 3 byte, last byte differs
-		//"/w/𠜎",  // 4 byte
-		//"/w/𠜏/", // 4 byte
+		"/Π",
+		"/u/apfêl/",
+		"/u/äpfêl/",
+		"/u/öpfêl",
+		"/v/Äpfêl/",
+		"/v/Öpfêl",
+		"/w/♬",  // 3 byte
+		"/w/♭/", // 3 byte, last byte differs
+		"/w/𠜎",  // 4 byte
+		"/w/𠜏/", // 4 byte
 	}
 
 	for _, route := range routes {
@@ -588,20 +572,20 @@ func TestTreeFindCaseInsensitivePath(t *testing.T) {
 		{"/DOC/", "/doc", true, true},
 		{"/NO", "", false, true},
 		{"/DOC/GO", "", false, true},
-		//{"/π", "/Π", true, false},
-		//{"/π/", "/Π", true, true},
-		//{"/u/ÄPFÊL/", "/u/äpfêl/", true, false},
-		//{"/u/ÄPFÊL", "/u/äpfêl/", true, true},
-		//{"/u/ÖPFÊL/", "/u/öpfêl", true, true},
-		//{"/u/ÖPFÊL", "/u/öpfêl", true, false},
-		//{"/v/äpfêL/", "/v/Äpfêl/", true, false},
-		//{"/v/äpfêL", "/v/Äpfêl/", true, true},
-		//{"/v/öpfêL/", "/v/Öpfêl", true, true},
-		//{"/v/öpfêL", "/v/Öpfêl", true, false},
-		//{"/w/♬/", "/w/♬", true, true},
-		//{"/w/♭", "/w/♭/", true, true},
-		//{"/w/𠜎/", "/w/𠜎", true, true},
-		//{"/w/𠜏", "/w/𠜏/", true, true},
+		{"/π", "/Π", true, false},
+		{"/π/", "/Π", true, true},
+		{"/u/ÄPFÊL/", "/u/äpfêl/", true, false},
+		{"/u/ÄPFÊL", "/u/äpfêl/", true, true},
+		{"/u/ÖPFÊL/", "/u/öpfêl", true, true},
+		{"/u/ÖPFÊL", "/u/öpfêl", true, false},
+		{"/v/äpfêL/", "/v/Äpfêl/", true, false},
+		{"/v/äpfêL", "/v/Äpfêl/", true, true},
+		{"/v/öpfêL/", "/v/Öpfêl", true, true},
+		{"/v/öpfêL", "/v/Öpfêl", true, false},
+		{"/w/♬/", "/w/♬", true, true},
+		{"/w/♭", "/w/♭/", true, true},
+		{"/w/𠜎/", "/w/𠜎", true, true},
+		{"/w/𠜏", "/w/𠜏/", true, true},
 	}
 	// With fixTrailingSlash = true
 	for _, test := range tests {
@@ -641,7 +625,7 @@ func TestTreeInvalidNodeType(t *testing.T) {
 
 	// normal lookup
 	recv := catchPanic(func() {
-		tree.getValue("/test")
+		tree.getValue("/test", getParams)
 	})
 	if rs, ok := recv.(string); !ok || rs != panicMsg {
 		t.Fatalf("Expected panic '"+panicMsg+"', got '%v'", recv)

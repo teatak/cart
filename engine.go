@@ -35,6 +35,11 @@ func (e *Engine) allocateContext() *Context {
 	return &Context{}
 }
 
+func getParams() Params {
+	ps := make(Params, 0, 20)
+	return ps
+}
+
 func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
 	router := e.routers[absolutePath]
 	if router == nil {
@@ -116,7 +121,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	}
 
 	if root := e.tree; root != nil {
-		if r, ps, tsr := root.getValue(path); r != nil {
+		if r, ps, tsr := root.getValue(path, getParams); r != nil {
 			router := r.(*Router)
 			c.Router = router
 			c.Params = ps
