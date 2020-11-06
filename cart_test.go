@@ -39,17 +39,23 @@ func handleAll(c *Context, next Next) {
 	debugPrint("handleAll end")
 }
 
-func handleEnd(c *Context, next Next) {
-	debugPrint("handleEnd begin")
-	next()
-	debugPrint("handleEnd end")
+func handlePs(c *Context) {
+	debugPrint("handlePs begin")
+	id, _ := c.Params.Get("id")
+	debugPrint("id:%s", id)
+	debugPrint("handlePs end")
 }
 
 func TestEngine(t *testing.T) {
 	c := New()
 	c.Use("/", handleAll)
+	c.Route("/:id").GET(handlePs)
 
 	w := new(mockResponseWriter)
 	req, _ := http.NewRequest("GET", "/", nil)
+	reqa, _ := http.NewRequest("GET", "/123", nil)
+
 	c.ServeHTTP(w, req)
+	c.ServeHTTP(w, reqa)
+
 }
