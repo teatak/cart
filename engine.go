@@ -35,9 +35,9 @@ func (e *Engine) allocateContext() *Context {
 	return &Context{}
 }
 
-func getParams() Params {
+func getParams() *Params {
 	ps := make(Params, 0, 20)
-	return ps
+	return &ps
 }
 
 func (e *Engine) findRouter(absolutePath string) (*Router, bool) {

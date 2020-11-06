@@ -53,8 +53,10 @@ func checkRequests(t *testing.T, tree *node, requests testRequests) {
 			}
 		}
 
-		if !reflect.DeepEqual(ps, request.ps) {
-			t.Errorf("Params mismatch for route '%s'", request.path)
+		if ps != nil {
+			if !reflect.DeepEqual(*ps, request.ps) {
+				t.Errorf("Params mismatch for route '%s'", request.path)
+			}
 		}
 	}
 }

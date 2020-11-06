@@ -319,7 +319,7 @@ func (n *node) insertChild(path, fullPath string, handle interface{}) {
 // If no handle can be found, a TSR (trailing slash redirect) recommendation is
 // made if a handle exists with an extra (without the) trailing slash for the
 // given path.
-func (n *node) getValue(path string, params func() Params) (handle interface{}, ps Params, tsr bool) {
+func (n *node) getValue(path string, params func() *Params) (handle interface{}, ps *Params, tsr bool) {
 walk: // Outer loop for walking the tree
 	for {
 		prefix := n.path
@@ -362,9 +362,9 @@ walk: // Outer loop for walking the tree
 							ps = params()
 						}
 						// Expand slice within preallocated capacity
-						i := len(ps)
-						ps = (ps)[:i+1]
-						(ps)[i] = Param{
+						i := len(*ps)
+						*ps = (*ps)[:i+1]
+						(*ps)[i] = Param{
 							Key:   n.path[1:],
 							Value: path[:end],
 						}
@@ -401,9 +401,9 @@ walk: // Outer loop for walking the tree
 							ps = params()
 						}
 						// Expand slice within preallocated capacity
-						i := len(ps)
-						ps = (ps)[:i+1]
-						(ps)[i] = Param{
+						i := len(*ps)
+						*ps = (*ps)[:i+1]
+						(*ps)[i] = Param{
 							Key:   n.path[2:],
 							Value: path,
 						}

@@ -35,7 +35,7 @@ type Context struct {
 	Response ResponseWriter
 
 	Router *Router
-	Params Params
+	Params *Params
 	Keys   map[string]interface{}
 }
 
@@ -46,7 +46,7 @@ func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.response.reset(w)
 	c.Response = &c.response
 	c.Request = req
-	c.Params = c.Params[0:0]
+	c.Params = nil
 	c.Router = nil
 	c.Keys = nil
 }
