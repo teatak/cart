@@ -11,7 +11,7 @@ A HTTP web framework written in golang
 package cart
 
 import (
-	"github.com/gimke/cart/render"
+	"github.com/teatak/cart/render"
 	"html/template"
 )
 

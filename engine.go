@@ -1,7 +1,7 @@
 package cart
 
 import (
-	"github.com/gimke/cart/render"
+	"github.com/teatak/cart/render"
 	"html/template"
 	"net/http"
 	"os"
