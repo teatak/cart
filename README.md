@@ -8,7 +8,7 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 ```
 
-[![Build Status](https://travis-ci.org/teatak/cart.svg?branch=master)](https://travis-ci.org/gimke/cart) [![codecov](https://codecov.io/gh/gimke/cart/branch/master/graph/badge.svg)](https://codecov.io/gh/gimke/cart) [![GoDoc](https://godoc.org/github.com/teatak/cart?status.svg)](https://godoc.org/github.com/teatak/cart)
+[![Build Status](https://travis-ci.org/teatak/cart.svg?branch=master)](https://travis-ci.org/teatak/cart) [![codecov](https://codecov.io/gh/teatak/cart/branch/master/graph/badge.svg)](https://codecov.io/gh/teatak/cart) [![GoDoc](https://godoc.org/github.com/teatak/cart?status.svg)](https://godoc.org/github.com/teatak/cart)
 
 
 # Examples
