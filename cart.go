@@ -1,3 +1,5 @@
+package cart
+
 /*
 A HTTP web framework written in golang
 
@@ -8,8 +10,6 @@ A HTTP web framework written in golang
 	╚██████╗██║  ██║██║  ██║   ██║
 	 ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 */
-package cart
-
 import (
 	"github.com/teatak/cart/render"
 	"html/template"
@@ -23,7 +23,7 @@ func New() *Engine {
 		Router:              Router{Path: "/"},
 		ForwardedByClientIP: true,
 		AppEngine:           false,
-		delims:              render.Delims{"{{", "}}"},
+		delims:              render.Delims{Left: "{{", Right: "}}"},
 		FuncMap:             template.FuncMap{},
 	}
 
