@@ -147,7 +147,7 @@ func (c *Context) Status(code int) {
 	c.response.WriteHeader(code)
 }
 
-// ClientIP implements a best effort algorithm to return the real client IP, it parses
+// ClientIP implements the best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
@@ -207,7 +207,7 @@ func (c *Context) HTML(code int, name string, obj interface{}) {
 	c.Render(code, instance)
 }
 
-//render layout html
+// LayoutHTML render layout html
 func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
 	html := c.HTMLString(name, obj)
 	tmp := obj.(H)
@@ -215,11 +215,14 @@ func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
 	c.Render(code, render.HTML{Template: c.Router.Engine.Template, Name: layout, Data: tmp})
 }
 
-//render Template to String
+// HTMLString render Template to String
 func (c *Context) HTMLString(name string, obj interface{}) string {
 	tpl := c.Router.Engine.Template
 	var buf bytes.Buffer
-	tpl.ExecuteTemplate(&buf, name, obj)
+	err := tpl.ExecuteTemplate(&buf, name, obj)
+	if err != nil {
+		return ""
+	}
 	html := buf.String()
 	return html
 }
@@ -288,7 +291,7 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 	}
 }
 
-//error
+// ErrorHTML error
 func (c *Context) ErrorHTML(code int, title, content string) {
 	tplString := `
 <!DOCTYPE html>
