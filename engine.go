@@ -1,13 +1,14 @@
 package cart
 
 import (
-	"github.com/teatak/cart/render"
 	"html/template"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/teatak/cart/render"
 )
 
 type Engine struct {
@@ -172,7 +173,7 @@ func (e *Engine) serveHTTP(c *Context) {
 
 func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
 	sp := strings.Split(absolutePath, "/")
-	for i, _ := range sp {
+	for i := range sp {
 		//find it's self first ..... last is root path / router
 		tempPath := strings.Join(sp[0:len(sp)-i], "/")
 		if tempPath == "" {
