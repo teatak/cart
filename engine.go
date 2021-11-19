@@ -15,7 +15,6 @@ type Engine struct {
 	Router
 	delims  render.Delims
 	routers map[string]*Router //saved routers
-	engine  *Engine
 	pool    sync.Pool
 	tree    *node //match trees
 
@@ -29,8 +28,6 @@ type Engine struct {
 }
 
 var _ http.Handler = &Engine{}
-
-var server *http.Server
 
 func (e *Engine) allocateContext() *Context {
 	return &Context{}

@@ -105,8 +105,7 @@ func debugError(err error) {
 				redColor = red
 				resetColor = reset
 			}
-			values := append([]interface{}{redColor, resetColor, err})
-			log.Printf("%s[ERROR]%s %v", values...)
+			log.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
 		}
 	}
 }

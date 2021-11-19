@@ -3,7 +3,6 @@ package cart
 import (
 	"bytes"
 	"fmt"
-	"github.com/teatak/cart/render"
 	"html/template"
 	"io"
 	"net"
@@ -11,6 +10,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/teatak/cart/render"
 )
 
 type Param struct {
@@ -105,7 +106,7 @@ func (c *Context) GetHeader(key string) string {
 }
 
 func (c *Context) requestHeader(key string) string {
-	if values, _ := c.Request.Header[key]; len(values) > 0 {
+	if values := c.Request.Header[key]; len(values) > 0 {
 		return values[0]
 	}
 	return ""
