@@ -57,10 +57,6 @@ func (w *responseWriter) WriteHeaderNow() {
 }
 
 func (w *responseWriter) Write(data []byte) (n int, err error) {
-	//custom 404 error
-	if w.status == 404 && !w.writeNow {
-		return len(data), nil
-	}
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
 	w.size += n
