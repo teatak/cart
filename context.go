@@ -336,9 +336,27 @@ func (c *Context) ErrorHTML(code int, title, content string) {
 		display: inline-block;
 		vertical-align: middle;
     }
+	.center {
+		margin-top: 16px;
+		display: flex;
+		justify-content: center;
+    }
+	pre {
+		font-size: 10pt;
+    	font-family: "Courier New", Monospace;
+    	white-space: pre;
+    }
     </style>
 </head>
 <body>
+<div class="center"><pre>
+ ██████╗ █████╗ ██████╗ ████████╗
+██╔════╝██╔══██╗██╔══██╗╚══██╔══╝
+██║     ███████║██████╔╝   ██║
+██║     ██╔══██║██╔══██╗   ██║
+╚██████╗██║  ██║██║  ██║   ██║
+ ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
+</pre></div>
 <div class="title">{{.Title}}</div>
 <div class="content">{{.Content}}</div>
 <footer>
