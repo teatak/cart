@@ -349,14 +349,6 @@ func (c *Context) ErrorHTML(code int, title, content string) {
     </style>
 </head>
 <body>
-<div class="center"><pre>
- ██████╗ █████╗ ██████╗ ████████╗
-██╔════╝██╔══██╗██╔══██╗╚══██╔══╝
-██║     ███████║██████╔╝   ██║
-██║     ██╔══██║██╔══██╗   ██║
-╚██████╗██║  ██║██║  ██║   ██║
- ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
-</pre></div>
 <div class="title">{{.Title}}</div>
 <div class="content">{{.Content}}</div>
 <footer>
