@@ -275,6 +275,18 @@ func (c *Context) File(filepath string) {
 	http.ServeFile(c.Response, c.Request, filepath)
 }
 
+// Static file
+func (c *Context) Static(relativePath, prefix string, listDirectory bool) {
+	fs := Dir(relativePath, listDirectory)
+
+	fileServer := http.StripPrefix(prefix, http.FileServer(fs))
+	_, nolisting := fs.(*onlyfilesFS)
+	if nolisting {
+		c.Response.WriteHeader(404)
+	}
+	fileServer.ServeHTTP(c.Response, c.Request)
+}
+
 func (c *Context) Stream(step func(w io.Writer) bool) {
 	w := c.Response
 	clientGone := w.CloseNotify()
