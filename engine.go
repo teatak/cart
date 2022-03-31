@@ -142,6 +142,7 @@ func (e *Engine) serveHTTP(c *Context) {
 			c.Response.WriteHeaderNow()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
+
 			code := 301 // Permanent redirect, request with GET method
 			if httpMethod != "GET" {
 				code = 307
