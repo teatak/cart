@@ -60,19 +60,19 @@ func colorForStatus(code int) string {
 func colorForMethod(method string) string {
 	switch method {
 	case "GET":
-		return blueBg
+		return blue
 	case "POST":
-		return cyanBg
+		return cyan
 	case "PUT":
-		return yellowBg
+		return yellow
 	case "DELETE":
-		return redBg
+		return red
 	case "PATCH":
-		return greenBg
+		return green
 	case "HEAD":
-		return magentaBg
+		return magenta
 	case "OPTIONS":
-		return whiteBg
+		return white
 	default:
 		return reset
 	}
