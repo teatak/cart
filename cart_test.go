@@ -28,10 +28,10 @@ func Equal(t *testing.T, a interface{}, b interface{}, err string) {
 }
 
 //handlers
-func handle(c *Context) {
-	debugPrint("handle")
-	c.Response.Write([]byte(c.Request.URL.Path))
-}
+// func handle(c *Context) {
+// 	debugPrint("handle")
+// 	c.Response.Write([]byte(c.Request.URL.Path))
+// }
 
 func handleAll(c *Context, next Next) {
 	debugPrint("handleAll begin")
