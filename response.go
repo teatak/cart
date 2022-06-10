@@ -17,7 +17,6 @@ type (
 		http.ResponseWriter
 		http.Hijacker
 		http.Flusher
-		http.CloseNotifier
 		WriteString(string) (int, error)
 		WriteHeaderNow()
 		Status() int
@@ -91,9 +90,9 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 // Implements the http.CloseNotify interface
-func (w *responseWriter) CloseNotify() <-chan bool {
-	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
-}
+// func (w *responseWriter) CloseNotify() <-chan bool {
+// 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
+// }
 
 // Implements the http.Flush interface
 func (w *responseWriter) Flush() {

@@ -134,7 +134,7 @@ func compose(functions ...HandlerCompose) HandlerCompose {
 		last := functions[len(functions)-1]
 		rest := functions[0 : len(functions)-1]
 		composed := last(c, next)
-		for i, _ := range rest {
+		for i := range rest {
 			composed = rest[len(rest)-1-i](c, composed)
 		}
 		return composed

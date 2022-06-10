@@ -8,15 +8,15 @@ import (
 	"testing"
 )
 
-func printChildren(n *node, prefix string) {
-	fmt.Printf(" %02d %s%s[%d] %v %t %d \r\n", n.priority, prefix, n.path, len(n.children), n.handle, n.wildChild, n.nType)
-	for l := len(n.path); l > 0; l-- {
-		prefix += " "
-	}
-	for _, child := range n.children {
-		printChildren(child, prefix)
-	}
-}
+// func printChildren(n *node, prefix string) {
+// 	fmt.Printf(" %02d %s%s[%d] %v %t %d \r\n", n.priority, prefix, n.path, len(n.children), n.handle, n.wildChild, n.nType)
+// 	for l := len(n.path); l > 0; l-- {
+// 		prefix += " "
+// 	}
+// 	for _, child := range n.children {
+// 		printChildren(child, prefix)
+// 	}
+// }
 
 // Used as a workaround since we can't compare functions or their addresses
 var fakeHandlerValue string

@@ -289,11 +289,11 @@ func (c *Context) Static(relativePath, prefix string, listDirectory bool) {
 
 func (c *Context) Stream(step func(w io.Writer) bool) {
 	w := c.Response
-	clientGone := w.CloseNotify()
+	//clientGone := w.CloseNotify()
 	for {
 		select {
-		case <-clientGone:
-			return
+		// case <-clientGone:
+		// 	return
 		default:
 			keepOpen := step(w)
 			w.Flush()
