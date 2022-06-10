@@ -291,16 +291,16 @@ func (c *Context) Stream(step func(w io.Writer) bool) {
 	w := c.Response
 	//clientGone := w.CloseNotify()
 	for {
-		select {
-		// case <-clientGone:
-		// 	return
-		default:
-			keepOpen := step(w)
-			w.Flush()
-			if !keepOpen {
-				return
-			}
+		// select {
+		// // case <-clientGone:
+		// // 	return
+		// default:
+		keepOpen := step(w)
+		w.Flush()
+		if !keepOpen {
+			return
 		}
+		// }
 	}
 }
 
