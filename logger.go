@@ -47,13 +47,13 @@ func LoggerWithWriter(out io.Writer) Handler {
 func colorForStatus(code int) string {
 	switch {
 	case code >= 200 && code < 300:
-		return green
+		return greenBg
 	case code >= 300 && code < 400:
-		return white
+		return whiteBg
 	case code >= 400 && code < 500:
-		return yellow
+		return yellowBg
 	default:
-		return red
+		return redBg
 	}
 }
 
