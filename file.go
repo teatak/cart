@@ -82,7 +82,8 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, 
 	})
 }
 
-func Static(relativePath string, listDirectory bool) Handler {
+//fallback can be empty if fallback is not empty http will render fallback path
+func Static(relativePath string, listDirectory bool, fallback ...string) Handler {
 	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("URL parameters can not be used when serving a static folder")
 	}
@@ -93,32 +94,12 @@ func Static(relativePath string, listDirectory bool) Handler {
 		if index != -1 {
 			prefix = prefix[0:index]
 		}
-		fileServer := StripPrefixFallback(prefix, fs, listDirectory, "")
-		fileServer.ServeHTTP(c.Response, c.Request)
-		// if c.Response.Status() == 404 {
-		// 	//c.Response.WriteHeader(200) //reset status
-		// 	next()
-		// }
-	}
-}
-
-func StaticFallback(relativePath string, fallback string, listDirectory bool) Handler {
-	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
-		panic("URL parameters can not be used when serving a static folder")
-	}
-	return func(c *Context, next Next) {
-		fs := Dir(relativePath, listDirectory)
-		prefix := c.Router.Path
-		index := strings.LastIndex(prefix, "*")
-		if index != -1 {
-			prefix = prefix[0:index]
+		f := ""
+		if len(fallback) > 0 {
+			f = fallback[0]
 		}
-		fileServer := StripPrefixFallback(prefix, fs, listDirectory, fallback)
+		fileServer := StripPrefixFallback(prefix, fs, listDirectory, f)
 		fileServer.ServeHTTP(c.Response, c.Request)
-		// if c.Response.Status() == 404 {
-		// 	//c.Response.WriteHeader(200) //reset status
-		// 	next()
-		// }
 	}
 }
 
