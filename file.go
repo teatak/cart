@@ -32,7 +32,6 @@ func File(relativePath string) Handler {
 
 func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, fallback string) http.Handler {
 	h := http.FileServer(fs)
-
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, prefix)
 		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
@@ -77,19 +76,6 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, 
 			} else {
 				h.ServeHTTP(w, r2)
 			}
-			// if fail {
-			// 	if isDir && !listDirectory {
-			// 		if fallback != "" {
-			// 			http.ServeFile(w, r2, fallback)
-			// 		} else {
-			// 			http.NotFound(w, r2)
-			// 		}
-			// 	} else {
-			// 		http.ServeFile(w, r2, fallback)
-			// 	}
-			// } else {
-			// 	h.ServeHTTP(w, r2)
-			// }
 		} else {
 			http.NotFound(w, r)
 		}
