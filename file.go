@@ -30,16 +30,15 @@ func File(relativePath string) Handler {
 	}
 }
 
-func StripPrefixFallback(prefix string, fs http.FileSystem, fallback string) http.Handler {
+func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, fallback string) http.Handler {
 	h := http.FileServer(fs)
-	if prefix == "" {
-		return h
-	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, prefix)
 		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
 		const indexPage = "/index.html"
 		fail := false
+		isDir := false
 		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
 			r2 := new(http.Request)
 			*r2 = *r
@@ -54,6 +53,7 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, fallback string) htt
 				defer f.Close()
 				fi, _ := f.Stat()
 				if fi.IsDir() {
+					isDir = true
 					// use contents of index.html for directory, if present
 					index := strings.TrimSuffix(p, "/") + indexPage
 					ff, err := fs.Open(index)
@@ -65,10 +65,31 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, fallback string) htt
 				}
 			}
 			if fail {
-				http.ServeFile(w, r2, fallback)
+				if isDir && listDirectory {
+					h.ServeHTTP(w, r2)
+				} else {
+					if fallback != "" {
+						http.ServeFile(w, r2, fallback)
+					} else {
+						http.NotFound(w, r2)
+					}
+				}
 			} else {
 				h.ServeHTTP(w, r2)
 			}
+			// if fail {
+			// 	if isDir && !listDirectory {
+			// 		if fallback != "" {
+			// 			http.ServeFile(w, r2, fallback)
+			// 		} else {
+			// 			http.NotFound(w, r2)
+			// 		}
+			// 	} else {
+			// 		http.ServeFile(w, r2, fallback)
+			// 	}
+			// } else {
+			// 	h.ServeHTTP(w, r2)
+			// }
 		} else {
 			http.NotFound(w, r)
 		}
@@ -86,37 +107,32 @@ func Static(relativePath string, listDirectory bool) Handler {
 		if index != -1 {
 			prefix = prefix[0:index]
 		}
-		fileServer := http.StripPrefix(prefix, http.FileServer(fs))
-		_, nolisting := fs.(*onlyfilesFS)
-		if nolisting {
-			c.Response.WriteHeader(404)
-		}
+		fileServer := StripPrefixFallback(prefix, fs, listDirectory, "")
 		fileServer.ServeHTTP(c.Response, c.Request)
-		if c.Response.Status() == 404 {
-			//c.Response.WriteHeader(200) //reset status
-			next()
-		}
+		// if c.Response.Status() == 404 {
+		// 	//c.Response.WriteHeader(200) //reset status
+		// 	next()
+		// }
 	}
 }
 
-func StaticFallback(relativePath string, fallback string) Handler {
+func StaticFallback(relativePath string, fallback string, listDirectory bool) Handler {
 	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("URL parameters can not be used when serving a static folder")
 	}
 	return func(c *Context, next Next) {
-		fs := Dir(relativePath, false)
+		fs := Dir(relativePath, listDirectory)
 		prefix := c.Router.Path
 		index := strings.LastIndex(prefix, "*")
 		if index != -1 {
 			prefix = prefix[0:index]
 		}
-		//http.ServeFile(c.Response, c.Request, fallback)
-		fileServer := StripPrefixFallback(prefix, fs, fallback)
+		fileServer := StripPrefixFallback(prefix, fs, listDirectory, fallback)
 		fileServer.ServeHTTP(c.Response, c.Request)
-		if c.Response.Status() == 404 {
-			//c.Response.WriteHeader(200) //reset status
-			next()
-		}
+		// if c.Response.Status() == 404 {
+		// 	//c.Response.WriteHeader(200) //reset status
+		// 	next()
+		// }
 	}
 }
 
