@@ -276,14 +276,17 @@ func (c *Context) File(filepath string) {
 }
 
 // Static file
-func (c *Context) Static(relativePath, prefix string, listDirectory bool) {
+func (c *Context) Static(relativePath, prefix string, listDirectory bool, fallback ...string) {
 	fs := Dir(relativePath, listDirectory)
-
-	fileServer := http.StripPrefix(prefix, http.FileServer(fs))
-	_, nolisting := fs.(*onlyfilesFS)
-	if nolisting {
-		c.Response.WriteHeader(404)
+	index := strings.LastIndex(prefix, "*")
+	if index != -1 {
+		prefix = prefix[0:index]
 	}
+	f := ""
+	if len(fallback) > 0 {
+		f = fallback[0]
+	}
+	fileServer := StripPrefixFallback(prefix, fs, listDirectory, f)
 	fileServer.ServeHTTP(c.Response, c.Request)
 }
 
