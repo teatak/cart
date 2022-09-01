@@ -2,6 +2,7 @@ package cart
 
 import (
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -29,6 +30,51 @@ func File(relativePath string) Handler {
 	}
 }
 
+func StripPrefixFallback(prefix string, fs http.FileSystem, fallback string) http.Handler {
+	h := http.FileServer(fs)
+	if prefix == "" {
+		return h
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := strings.TrimPrefix(r.URL.Path, prefix)
+		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
+		const indexPage = "/index.html"
+		fail := false
+		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
+			r2 := new(http.Request)
+			*r2 = *r
+			r2.URL = new(url.URL)
+			*r2.URL = *r.URL
+			r2.URL.Path = p
+			r2.URL.RawPath = rp
+			f, err := fs.Open(p)
+			if err != nil {
+				fail = true
+			} else {
+				defer f.Close()
+				fi, _ := f.Stat()
+				if fi.IsDir() {
+					// use contents of index.html for directory, if present
+					index := strings.TrimSuffix(p, "/") + indexPage
+					ff, err := fs.Open(index)
+					if err != nil {
+						fail = true
+					} else {
+						defer ff.Close()
+					}
+				}
+			}
+			if fail {
+				http.ServeFile(w, r2, fallback)
+			} else {
+				h.ServeHTTP(w, r2)
+			}
+		} else {
+			http.NotFound(w, r)
+		}
+	})
+}
+
 func Static(relativePath string, listDirectory bool) Handler {
 	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("URL parameters can not be used when serving a static folder")
@@ -47,10 +93,30 @@ func Static(relativePath string, listDirectory bool) Handler {
 		}
 		fileServer.ServeHTTP(c.Response, c.Request)
 		if c.Response.Status() == 404 {
-			c.Response.WriteHeader(200) //reset status
+			//c.Response.WriteHeader(200) //reset status
 			next()
 		}
+	}
+}
 
+func StaticFallback(relativePath string, fallback string) Handler {
+	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
+		panic("URL parameters can not be used when serving a static folder")
+	}
+	return func(c *Context, next Next) {
+		fs := Dir(relativePath, false)
+		prefix := c.Router.Path
+		index := strings.LastIndex(prefix, "*")
+		if index != -1 {
+			prefix = prefix[0:index]
+		}
+		//http.ServeFile(c.Response, c.Request, fallback)
+		fileServer := StripPrefixFallback(prefix, fs, fallback)
+		fileServer.ServeHTTP(c.Response, c.Request)
+		if c.Response.Status() == 404 {
+			//c.Response.WriteHeader(200) //reset status
+			next()
+		}
 	}
 }
 
