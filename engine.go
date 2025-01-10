@@ -234,13 +234,11 @@ func (e *Engine) ServerKeepAlive(addr ...string) (server *http.Server) {
 /*
 Run the server
 */
-func (e *Engine) Run(addr ...string) (server *http.Server, err error) {
+func (e *Engine) Run(addr string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
-	address := resolveAddress(addr)
-	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), address)
-
+	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), addr)
 	server = &http.Server{
-		Addr:        address,
+		Addr:        addr,
 		Handler:     e,
 		ReadTimeout: time.Second * 90,
 		//ReadHeaderTimeout: time.Second * 90,
