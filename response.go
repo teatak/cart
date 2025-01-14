@@ -9,7 +9,7 @@ import (
 
 const (
 	noWritten     = -1
-	defaultStatus = -1
+	defaultStatus = 200
 )
 
 type (
