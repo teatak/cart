@@ -11,11 +11,10 @@ A HTTP web framework written in golang
 	 ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 */
 import (
-	"github.com/teatak/cart/render"
 	"html/template"
-)
 
-const Version = "v1.0.8"
+	"github.com/teatak/cart/render"
+)
 
 func New() *Engine {
 	debugWarning()
