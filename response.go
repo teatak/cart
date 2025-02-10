@@ -20,6 +20,8 @@ type (
 		Size() int
 		Status() int
 		Written() bool
+		Before(func())
+		After(func())
 	}
 	responseWriter struct {
 		http.ResponseWriter
