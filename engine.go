@@ -139,7 +139,6 @@ func (e *Engine) serveHTTP(c *Context) {
 			} else {
 				final404()
 			}
-			c.Response.WriteHeaderNow()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
 
@@ -166,7 +165,6 @@ func (e *Engine) serveHTTP(c *Context) {
 	} else {
 		final404()
 	}
-	c.Response.WriteHeaderNow()
 }
 
 func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {

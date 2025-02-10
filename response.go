@@ -9,7 +9,7 @@ import (
 
 const (
 	noWritten     = -1
-	defaultStatus = 200
+	defaultStatus = http.StatusOK
 )
 
 type (
@@ -17,16 +17,17 @@ type (
 		http.ResponseWriter
 		http.Hijacker
 		http.Flusher
-		WriteString(string) (int, error)
-		WriteHeaderNow()
-		Status() int
 		Size() int
+		Status() int
+		Written() bool
 	}
 	responseWriter struct {
 		http.ResponseWriter
-		size     int
-		status   int
-		writeNow bool
+		beforeFuncs []func()
+		afterFuncs  []func()
+		size        int
+		status      int
+		written     bool
 	}
 )
 
@@ -34,38 +35,55 @@ var _ ResponseWriter = &responseWriter{}
 
 func (w *responseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
+	w.beforeFuncs = nil
+	w.afterFuncs = nil
 	w.size = noWritten
 	w.status = defaultStatus
-	w.writeNow = false
+	w.written = false
+}
+
+func (w *responseWriter) Before(fn func()) {
+	w.beforeFuncs = append(w.beforeFuncs, fn)
+}
+
+func (w *responseWriter) After(fn func()) {
+	w.afterFuncs = append(w.afterFuncs, fn)
 }
 
 func (w *responseWriter) WriteHeader(code int) {
-	if code > 0 && w.status != code {
-		if w.Written() {
-			debugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
-		}
-		w.status = code
+	if w.written {
+		debugPrint("[WARNING] Headers were already written.")
+		return
 	}
-}
-
-func (w *responseWriter) WriteHeaderNow() {
-	if !w.Written() {
-		w.size = 0
-		w.ResponseWriter.WriteHeader(w.status)
+	w.status = code
+	for _, fn := range w.beforeFuncs {
+		fn()
 	}
+	w.ResponseWriter.WriteHeader(w.status)
+	w.written = true
 }
 
 func (w *responseWriter) Write(data []byte) (n int, err error) {
-	w.WriteHeaderNow()
+	if !w.written {
+		w.WriteHeader(w.status)
+	}
 	n, err = w.ResponseWriter.Write(data)
 	w.size += n
+	for _, fn := range w.afterFuncs {
+		fn()
+	}
 	return
 }
 
 func (w *responseWriter) WriteString(s string) (n int, err error) {
-	w.WriteHeaderNow()
+	if !w.written {
+		w.WriteHeader(w.status)
+	}
 	n, err = io.WriteString(w.ResponseWriter, s)
 	w.size += n
+	for _, fn := range w.afterFuncs {
+		fn()
+	}
 	return
 }
 
@@ -78,7 +96,7 @@ func (w *responseWriter) Size() int {
 }
 
 func (w *responseWriter) Written() bool {
-	return w.size != noWritten
+	return w.written
 }
 
 // Implements the http.Hijacker interface

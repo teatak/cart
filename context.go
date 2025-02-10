@@ -52,7 +52,7 @@ func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.Keys = nil
 }
 
-//RESPONSE
+// RESPONSE
 func bodyAllowedForStatus(status int) bool {
 	switch {
 	case status >= 100 && status <= 199:
@@ -72,8 +72,7 @@ func (c *Context) Param(key string) (string, bool) {
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(code int) {
-	c.Status(code)
-	c.Response.WriteHeaderNow()
+	c.Response.WriteHeader(code)
 }
 
 func (c *Context) AbortRender(code int, request string, err interface{}) {
@@ -144,10 +143,6 @@ func (c *Context) Cookie(name string) (string, error) {
 	return val, nil
 }
 
-func (c *Context) Status(code int) {
-	c.response.WriteHeader(code)
-}
-
 // ClientIP implements the best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
@@ -186,17 +181,14 @@ func (c *Context) ContentType() string {
 }
 
 func (c *Context) Render(code int, r render.Render) {
-	c.response.writeNow = true
-	c.Status(code)
-
 	if !bodyAllowedForStatus(code) {
 		r.WriteContentType(c.Response)
-		c.Response.WriteHeaderNow()
-		return
-	}
-
-	if err := r.Render(c.Response); err != nil {
-		panic(err)
+		c.Response.WriteHeader(code)
+	} else {
+		c.response.status = code
+		if err := r.Render(c.Response); err != nil {
+			panic(err)
+		}
 	}
 }
 
