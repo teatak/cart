@@ -12,30 +12,18 @@ const (
 	defaultStatus = http.StatusOK
 )
 
-type (
-	ResponseWriter interface {
-		http.ResponseWriter
-		http.Hijacker
-		http.Flusher
-		Size() int
-		Status() int
-		Written() bool
-		Before(func())
-		After(func())
-	}
-	responseWriter struct {
-		http.ResponseWriter
-		beforeFuncs []func()
-		afterFuncs  []func()
-		size        int
-		status      int
-		written     bool
-	}
-)
+type ResponseWriter struct {
+	http.ResponseWriter
+	beforeFuncs []func()
+	afterFuncs  []func()
+	size        int
+	status      int
+	written     bool
+}
 
-var _ ResponseWriter = &responseWriter{}
+// var _ ResponseWriter = &responseWriter{}
 
-func (w *responseWriter) reset(writer http.ResponseWriter) {
+func (w *ResponseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
 	w.beforeFuncs = nil
 	w.afterFuncs = nil
@@ -44,15 +32,15 @@ func (w *responseWriter) reset(writer http.ResponseWriter) {
 	w.written = false
 }
 
-func (w *responseWriter) Before(fn func()) {
+func (w *ResponseWriter) Before(fn func()) {
 	w.beforeFuncs = append(w.beforeFuncs, fn)
 }
 
-func (w *responseWriter) After(fn func()) {
+func (w *ResponseWriter) After(fn func()) {
 	w.afterFuncs = append(w.afterFuncs, fn)
 }
 
-func (w *responseWriter) WriteHeader(code int) {
+func (w *ResponseWriter) WriteHeader(code int) {
 	if w.written {
 		debugPrint("[WARNING] Headers were already written.")
 		return
@@ -65,7 +53,7 @@ func (w *responseWriter) WriteHeader(code int) {
 	w.written = true
 }
 
-func (w *responseWriter) Write(data []byte) (n int, err error) {
+func (w *ResponseWriter) Write(data []byte) (n int, err error) {
 	if !w.written {
 		w.WriteHeader(w.status)
 	}
@@ -77,7 +65,7 @@ func (w *responseWriter) Write(data []byte) (n int, err error) {
 	return
 }
 
-func (w *responseWriter) WriteString(s string) (n int, err error) {
+func (w *ResponseWriter) WriteString(s string) (n int, err error) {
 	if !w.written {
 		w.WriteHeader(w.status)
 	}
@@ -89,20 +77,20 @@ func (w *responseWriter) WriteString(s string) (n int, err error) {
 	return
 }
 
-func (w *responseWriter) Status() int {
+func (w *ResponseWriter) Status() int {
 	return w.status
 }
 
-func (w *responseWriter) Size() int {
+func (w *ResponseWriter) Size() int {
 	return w.size
 }
 
-func (w *responseWriter) Written() bool {
+func (w *ResponseWriter) Written() bool {
 	return w.written
 }
 
 // Implements the http.Hijacker interface
-func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+func (w *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if w.size < 0 {
 		w.size = 0
 	}
@@ -110,11 +98,11 @@ func (w *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 // Implements the http.CloseNotify interface
-// func (w *responseWriter) CloseNotify() <-chan bool {
+// func (w *ResponseWriter) CloseNotify() <-chan bool {
 // 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 // }
 
 // Implements the http.Flush interface
-func (w *responseWriter) Flush() {
+func (w *ResponseWriter) Flush() {
 	w.ResponseWriter.(http.Flusher).Flush()
 }

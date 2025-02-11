@@ -31,9 +31,9 @@ func (ps Params) Get(name string) (string, bool) {
 }
 
 type Context struct {
-	response responseWriter
+	//response responseWriter
 	Request  *http.Request
-	Response ResponseWriter
+	Response *ResponseWriter
 
 	Router *Router
 	Params *Params
@@ -44,8 +44,7 @@ type Context struct {
 reset Con
 */
 func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
-	c.response.reset(w)
-	c.Response = &c.response
+	c.Response.reset(w)
 	c.Request = req
 	c.Params = nil
 	c.Router = nil
@@ -185,7 +184,8 @@ func (c *Context) Render(code int, r render.Render) {
 		r.WriteContentType(c.Response)
 		c.Response.WriteHeader(code)
 	} else {
-		c.response.status = code
+		c.Response.status = code
+		//c.response.status = code
 		if err := r.Render(c.Response); err != nil {
 			panic(err)
 		}

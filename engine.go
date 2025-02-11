@@ -30,7 +30,7 @@ type Engine struct {
 var _ http.Handler = &Engine{}
 
 func (e *Engine) allocateContext() *Context {
-	return &Context{}
+	return &Context{Response: &ResponseWriter{}}
 }
 
 func getParams() *Params {
