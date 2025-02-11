@@ -106,7 +106,7 @@ func (e *Engine) serveHTTP(c *Context) {
 		// 404 error
 		// make temp router
 		c.Router, _ = e.getRouter(path)
-		if !c.Response.Written() {
+		if c.Response.Size() == -1 && c.Response.Status() == 200 {
 			if e.NotFound != nil {
 				e.NotFound(c)
 			} else {
@@ -134,7 +134,7 @@ func (e *Engine) serveHTTP(c *Context) {
 				composed = methods
 			}
 			if composed != nil {
-				composed(c, final404)()
+				composed(c, func() {})()
 			} else {
 				final404()
 			}

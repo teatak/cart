@@ -2,7 +2,6 @@ package cart
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -46,7 +45,6 @@ func (w *ResponseWriter) WriteHeader(code int) {
 			return
 		}
 		w.status = code
-		fmt.Println("WriteHeader", code)
 	}
 }
 

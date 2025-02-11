@@ -8,7 +8,7 @@ import (
 
 type Next func()
 
-//normal handler
+// normal handler
 type Handler func(*Context, Next)
 type HandlerFinal func(*Context)
 type HandlerCompose func(*Context, Next) Next
@@ -104,6 +104,7 @@ func makeCompose(handles ...Handler) HandlerCompose {
 
 /*
 compose HandlerCompose
+
 	temp := 0
 	A := func(c *Context, next Next) Next {
 		return func() {
