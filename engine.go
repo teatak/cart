@@ -106,14 +106,13 @@ func (e *Engine) serveHTTP(c *Context) {
 		// 404 error
 		// make temp router
 		c.Router, _ = e.getRouter(path)
-		if c.Response.Size() == -1 && c.Response.Status() == 200 {
+		if !c.Response.Written() {
 			if e.NotFound != nil {
 				e.NotFound(c)
 			} else {
 				c.ErrorHTML(404,
 					"404 Not Found",
 					"The page <b style='color:red'>"+path+"</b> is not found")
-				//c.String(404,"404 Not Found")
 			}
 		}
 	}
@@ -139,9 +138,9 @@ func (e *Engine) serveHTTP(c *Context) {
 			} else {
 				final404()
 			}
+			c.Response.WriteHeaderFinal()
 			return
 		} else if httpMethod != "CONNECT" && path != "/" {
-
 			code := 301 // Permanent redirect, request with GET method
 			if httpMethod != "GET" {
 				code = 307
@@ -165,6 +164,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	} else {
 		final404()
 	}
+	c.Response.WriteHeaderFinal()
 }
 
 func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {

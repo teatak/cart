@@ -2,6 +2,7 @@ package cart
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -18,7 +19,6 @@ type ResponseWriter struct {
 	afterFuncs  []func()
 	size        int
 	status      int
-	written     bool
 }
 
 // var _ ResponseWriter = &responseWriter{}
@@ -29,7 +29,6 @@ func (w *ResponseWriter) reset(writer http.ResponseWriter) {
 	w.afterFuncs = nil
 	w.size = noWritten
 	w.status = defaultStatus
-	w.written = false
 }
 
 func (w *ResponseWriter) Before(fn func()) {
@@ -41,22 +40,41 @@ func (w *ResponseWriter) After(fn func()) {
 }
 
 func (w *ResponseWriter) WriteHeader(code int) {
-	if w.written {
-		debugPrint("[WARNING] Headers were already written.")
-		return
+	if code > 0 && w.status != code {
+		if w.Written() {
+			debugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			return
+		}
+		w.status = code
+		fmt.Println("WriteHeader", code)
 	}
-	w.status = code
-	for _, fn := range w.beforeFuncs {
-		fn()
+}
+
+func (w *ResponseWriter) WriteHeaderFinal() {
+	if !w.Written() {
+		for _, fn := range w.beforeFuncs {
+			fn()
+		}
+		w.size = 0
+		w.ResponseWriter.WriteHeader(w.status)
+		for _, fn := range w.afterFuncs {
+			fn()
+		}
 	}
-	w.ResponseWriter.WriteHeader(w.status)
-	w.written = true
+}
+
+func (w *ResponseWriter) writeHeader() {
+	if !w.Written() {
+		for _, fn := range w.beforeFuncs {
+			fn()
+		}
+		w.size = 0
+		w.ResponseWriter.WriteHeader(w.status)
+	}
 }
 
 func (w *ResponseWriter) Write(data []byte) (n int, err error) {
-	if !w.written {
-		w.WriteHeader(w.status)
-	}
+	w.writeHeader()
 	n, err = w.ResponseWriter.Write(data)
 	w.size += n
 	for _, fn := range w.afterFuncs {
@@ -66,9 +84,7 @@ func (w *ResponseWriter) Write(data []byte) (n int, err error) {
 }
 
 func (w *ResponseWriter) WriteString(s string) (n int, err error) {
-	if !w.written {
-		w.WriteHeader(w.status)
-	}
+	w.writeHeader()
 	n, err = io.WriteString(w.ResponseWriter, s)
 	w.size += n
 	for _, fn := range w.afterFuncs {
@@ -86,7 +102,7 @@ func (w *ResponseWriter) Size() int {
 }
 
 func (w *ResponseWriter) Written() bool {
-	return w.written
+	return w.size != noWritten
 }
 
 // Implements the http.Hijacker interface
