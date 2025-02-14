@@ -118,5 +118,7 @@ func (w *ResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 // Implements the http.Flush interface
 func (w *ResponseWriter) Flush() {
-	w.ResponseWriter.(http.Flusher).Flush()
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
 }
