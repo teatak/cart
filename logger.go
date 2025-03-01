@@ -1,8 +1,8 @@
 package cart
 
 import (
-	"fmt"
 	"io"
+	"log"
 	"os"
 	"time"
 )
@@ -32,15 +32,13 @@ func LoggerWithWriter(out io.Writer) Handler {
 			statusColor = colorForStatus(statusCode)
 			methodColor = colorForMethod(method)
 		}
-
-		fmt.Fprintf(out, "[CART]  %v |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
-			end.Format("2006-01-02 15:04:05.000"),
+		log.Printf("%s[CART]%s  |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
+			green, reset,
 			statusColor, statusCode, reset,
 			latency,
 			clientIP,
 			methodColor, method, reset,
-			path,
-		)
+			path)
 	}
 }
 

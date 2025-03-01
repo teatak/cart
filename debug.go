@@ -1,9 +1,11 @@
 package cart
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
 var (
@@ -40,6 +42,13 @@ var DefaultWriter io.Writer = os.Stdout
 var DefaultErrorWriter io.Writer = os.Stderr
 var cartMode = debugCode
 
+type LogWriter struct {
+}
+
+func (writer LogWriter) Write(bytes []byte) (int, error) {
+	return fmt.Print(time.Now().Format("2006-01-02 15:04:05.000"), " ", string(bytes))
+}
+
 func init() {
 	mode := os.Getenv(ENV_CART_MODE)
 	if len(mode) == 0 {
@@ -47,6 +56,8 @@ func init() {
 	} else {
 		SetMode(mode)
 	}
+	log.SetFlags(0)
+	log.SetOutput(new(LogWriter))
 }
 
 func SetMode(value string) {
