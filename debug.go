@@ -1,11 +1,10 @@
 package cart
 
 import (
-	"fmt"
 	"io"
-	"log"
 	"os"
-	"time"
+
+	"github.com/teatak/cart/clog"
 )
 
 var (
@@ -42,13 +41,6 @@ var DefaultWriter io.Writer = os.Stdout
 var DefaultErrorWriter io.Writer = os.Stderr
 var cartMode = debugCode
 
-type LogWriter struct {
-}
-
-func (writer LogWriter) Write(bytes []byte) (int, error) {
-	return fmt.Print(time.Now().Format("2006-01-02 15:04:05.000"), " ", string(bytes))
-}
-
 func init() {
 	mode := os.Getenv(ENV_CART_MODE)
 	if len(mode) == 0 {
@@ -56,8 +48,6 @@ func init() {
 	} else {
 		SetMode(mode)
 	}
-	log.SetFlags(0)
-	log.SetOutput(new(LogWriter))
 }
 
 func SetMode(value string) {
@@ -92,8 +82,9 @@ func debugPrint(format string, values ...interface{}) {
 			yellowColor = yellow
 			resetColor = reset
 		}
+
 		values = append([]interface{}{yellowColor, resetColor}, values...)
-		log.Printf("%s[DEBUG]%s "+format, values...)
+		clog.Printf("%s[DEBUG]%s "+format, values...)
 	}
 }
 
@@ -123,7 +114,7 @@ func debugError(err error) {
 				redColor = red
 				resetColor = reset
 			}
-			log.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
+			clog.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
 		}
 	}
 }
