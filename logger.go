@@ -34,7 +34,7 @@ func LoggerWithWriter(out io.Writer) Handler {
 			methodColor = colorForMethod(method)
 		}
 		clog.Printf("%s[CART]%s  |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
-			green, reset,
+			blue, reset,
 			statusColor, statusCode, reset,
 			latency,
 			clientIP,
