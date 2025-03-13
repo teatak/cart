@@ -2,10 +2,9 @@ package cart
 
 import (
 	"io"
+	"log"
 	"os"
 	"time"
-
-	"github.com/teatak/cart/clog"
 )
 
 func Logger() Handler {
@@ -33,7 +32,7 @@ func LoggerWithWriter(out io.Writer) Handler {
 			statusColor = colorForStatus(statusCode)
 			methodColor = colorForMethod(method)
 		}
-		clog.Printf("%s[CART]%s  |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
+		log.Printf("%s[CART]%s  |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
 			blue, reset,
 			statusColor, statusCode, reset,
 			latency,

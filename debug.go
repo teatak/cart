@@ -2,9 +2,8 @@ package cart
 
 import (
 	"io"
+	"log"
 	"os"
-
-	"github.com/teatak/cart/clog"
 )
 
 var (
@@ -84,7 +83,7 @@ func debugPrint(format string, values ...interface{}) {
 		}
 
 		values = append([]interface{}{yellowColor, resetColor}, values...)
-		clog.Printf("%s[DEBUG]%s "+format, values...)
+		log.Printf("%s[DEBUG]%s "+format, values...)
 	}
 }
 
@@ -114,7 +113,7 @@ func debugError(err error) {
 				redColor = red
 				resetColor = reset
 			}
-			clog.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
+			log.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
 		}
 	}
 }
