@@ -29,6 +29,11 @@ func fakeHandler(val string) HandlerCompose {
 	}
 }
 
+func getParams() *Params {
+	ps := make(Params, 0, 20)
+	return &ps
+}
+
 type testRequests []struct {
 	path       string
 	nilHandler bool

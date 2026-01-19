@@ -91,6 +91,32 @@ func (c *Context) BindForm(obj interface{}) error {
 	return mapValues(obj, c.Request.Form)
 }
 
+// Query returns the keyed url query value if it exists
+func (c *Context) Query(key string) string {
+	return c.Request.URL.Query().Get(key)
+}
+
+// DefaultQuery returns the keyed url query value if it exists, otherwise it returns the defaultValue
+func (c *Context) DefaultQuery(key, defaultValue string) string {
+	if value := c.Query(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// PostForm returns the keyed post form value if it exists
+func (c *Context) PostForm(key string) string {
+	return c.Request.PostFormValue(key)
+}
+
+// DefaultPostForm returns the keyed post form value if it exists, otherwise it returns the defaultValue
+func (c *Context) DefaultPostForm(key, defaultValue string) string {
+	if value := c.PostForm(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func mapValues(ptr interface{}, form map[string][]string) error {
 	typ := reflect.TypeOf(ptr).Elem()
 	val := reflect.ValueOf(ptr).Elem()

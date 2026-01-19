@@ -16,10 +16,11 @@ import (
 
 type Engine struct {
 	Router
-	delims  render.Delims
-	routers map[string]*Router //saved routers
-	pool    sync.Pool
-	tree    *node //match trees
+	delims     render.Delims
+	routers    map[string]*Router //saved routers
+	pool       sync.Pool
+	paramsPool sync.Pool
+	tree       *node //match trees
 
 	NotFound HandlerFinal
 
@@ -40,9 +41,20 @@ func (e *Engine) allocateContext() *Context {
 	return &Context{Response: &ResponseWriter{}}
 }
 
-func getParams() *Params {
-	ps := make(Params, 0, 20)
-	return &ps
+func (e *Engine) getParams() *Params {
+	ps, ok := e.paramsPool.Get().(*Params)
+	if !ok {
+		p := make(Params, 0, 20)
+		return &p
+	}
+	*ps = (*ps)[:0]
+	return ps
+}
+
+func (e *Engine) putParams(ps *Params) {
+	if ps != nil {
+		e.paramsPool.Put(ps)
+	}
 }
 
 func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
@@ -86,6 +98,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := e.pool.Get().(*Context)
 	c.reset(w, req)
 	e.serveHTTP(c)
+	e.putParams(c.Params)
 	e.pool.Put(c)
 }
 
@@ -133,7 +146,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	}
 
 	if root := e.tree; root != nil {
-		if r, ps, tsr := root.getValue(path, getParams); r != nil {
+		if r, ps, tsr := root.getValue(path, e.getParams); r != nil {
 			router := r.(*Router)
 			c.Router = router
 			c.Params = ps
@@ -183,24 +196,30 @@ func (e *Engine) serveHTTP(c *Context) {
 }
 
 func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
-	sp := strings.Split(absolutePath, "/")
-	for i := range sp {
-		//find it's self first ..... last is root path / router
-		tempPath := strings.Join(sp[0:len(sp)-i], "/")
-		if tempPath == "" {
-			tempPath = "/"
-		}
-		if pr, find := e.findRouter(tempPath); find {
+	path := absolutePath
+	for {
+		if pr, find := e.findRouter(path); find {
 			return pr, pr.composed
 		}
-		//auto add slash then find
-		if tempPath[len(tempPath)-1] != '/' && tempPath != absolutePath && tempPath != "/" {
-			tempPath = tempPath + "/"
-			if pr, find := e.findRouter(tempPath); find {
+
+		// Check with trailing slash if not already present
+		if path != "/" && path[len(path)-1] != '/' {
+			if pr, find := e.findRouter(path + "/"); find {
 				return pr, pr.composed
 			}
 		}
 
+		if path == "/" {
+			break
+		}
+
+		// find last slash
+		i := strings.LastIndexByte(path, '/')
+		if i <= 0 {
+			path = "/"
+		} else {
+			path = path[:i]
+		}
 	}
 	return nil, nil
 }
