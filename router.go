@@ -38,7 +38,7 @@ func (r *Router) flatten() {
 		anyHandler = mh
 	}
 
-	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "ANY"}
+	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "CONNECT", "TRACE", "ANY"}
 	for _, m := range methods {
 		var handler HandlerCompose
 		if mh, ok := r.getMethod(m); ok {

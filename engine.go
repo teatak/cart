@@ -115,26 +115,9 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	e.serveHTTP(c)
 }
 
-func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
-	//http method find any
-	var methods HandlerCompose
-	if m, find := r.getMethod("ANY"); find {
-		methods = compose(m)
-	}
-	if m, find := r.getMethod(httpMethod); find {
-		if methods != nil {
-			methods = compose(methods, m)
-		} else {
-			methods = compose(m)
-		}
-	}
-	return methods
-}
-
 func (e *Engine) serve404(c *Context, path string) {
 	// 404 error
-	// make temp router
-	c.Router, _ = e.getRouter(path)
+	c.Router, _ = e.findRouter(path)
 	if c.Response.Size() == -1 && c.Response.Status() == 200 {
 		if e.NotFound != nil {
 			if err := e.NotFound(c); err != nil && e.ErrorHandler != nil {
