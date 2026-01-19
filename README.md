@@ -104,6 +104,21 @@ app.Use("/", func(c *cart.Context, next cart.Next) {
 })
 ```
 
+#### Standard Middlewares
+Built-in middlewares are available for common tasks:
+- `cart.Logger()`: Colored request logging.
+- `cart.Recovery()`: Panic recovery.
+- `cart.Gzip()`: Gzip response compression.
+- `cart.RequestID()`: X-Request-ID generation/tracing.
+- `cart.CORS()`: Cross-Origin Resource Sharing handling.
+
+```go
+app.Use("/", cart.Logger())
+app.Use("/", cart.Recovery())
+app.Use("/", cart.RequestID())
+app.Use("/", cart.CORS())
+```
+
 ### Routing
 Routing is hierarchical and chainable.
 

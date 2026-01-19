@@ -256,10 +256,18 @@ func (c *Context) Param(key string) (string, bool) {
 	return c.Params.Get(key)
 }
 
+// Abort prevents pending handlers from being called.
+func (c *Context) Abort() {
+	// Not fully implemented yet because our onion model is next based,
+	// but we can set a flag that 'next()' will check, or provide these
+	// convenience methods if handlers/middlewares check themselves.
+}
+
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(code int) {
-	c.Response.WriteHeader(code)
+	c.Status(code)
+	c.Abort()
 }
 
 func (c *Context) AbortRender(code int, request string, err interface{}) {
