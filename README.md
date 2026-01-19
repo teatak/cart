@@ -8,19 +8,19 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 ```
 
-Current version: v2
+Current version: v2.0.0
 
-A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express.
+A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express, optimized for high-concurrency ⚡.
 
 ## Features
 
-- **Onion Architecture Middleware**: `func(ctx *Context, next Next)` style middleware.
-- **Concise Routing**: Chainable routing API `c.Route("/a").Route("/b", ...)` with explicit tree structure.
-- **Zero-Allocation Context Reuse**: Optimized for high performance.
+- **Extreme Performance**: Registration-time middleware flattening and zero-allocation context pooling.
+- **Onion Architecture Middleware**: Powerful `func(ctx *Context, next Next)` style.
+- **Hierarchical Routing**: Chainable and explicit tree structure.
 - **Lifecycle Hooks**: `OnRequest` and `OnResponse` hooks for global intervention.
-- **Graceful Shutdown**: Built-in support for safe server termination.
-- **Centralized Error Handling**: Handlers can return errors directly.
-- **Data Binding**: Easy JSON binding with validation support.
+- **Built-in Validation**: Smart binding with `binding:"required"` support.
+- **Graceful Shutdown**: Ready for production with safe termination.
+- **Modern Standards**: Native support for `embed.FS`, CORS, Gzip, and RequestID.
 
 ## Installation
 
@@ -36,125 +36,99 @@ package main
 import (
 	"fmt"
 	"net/http"
-
 	"github.com/teatak/cart/v2"
 )
 
 func main() {
 	app := cart.New()
 
-	// Global Middleware
-	app.Use("/", func(c *cart.Context, next cart.Next) {
-		fmt.Println("Before Request")
-		next()
-		fmt.Println("After Request")
-	})
+	// 1. Standard Middlewares
+	app.Use("/", cart.Logger())
+	app.Use("/", cart.Recovery())
 
-	// Lifecycle Hooks
+	// 2. Lifecycle Hooks
 	app.OnRequest = func(c *cart.Context) {
 		fmt.Println("Request Started:", c.Request.URL.Path)
 	}
-	app.OnResponse = func(c *cart.Context) {
-		fmt.Println("Request Finished")
+
+	// 3. Routing with Validation
+	type User struct {
+		ID   int    `form:"id" binding:"required"`
+		Name string `json:"name" binding:"required"`
 	}
 
-	// Routes
-	app.Route("/hello").GET(func(c *cart.Context) error {
-		return c.JSON(http.StatusOK, cart.H{
-			"message": "Hello World",
-		})
-	})
-	
-	// Error Handling Example
-	app.Route("/error").GET(func(c *cart.Context) error {
-		return fmt.Errorf("something went wrong")
-	})
-	
-	// Data Binding & Validation Example
-	type User struct {
-		Name  string `json:"name" binding:"required"` // Mandatory field
-		Email string `json:"email"`
-	}
-	app.Route("/user").POST(func(c *cart.Context) error {
+	app.Route("/user/:id").POST(func(c *cart.Context) error {
 		var user User
-		if err := c.BindJSON(&user); err != nil {
-			return err // Will return error if 'name' is missing
+		if err := c.Bind(&user); err != nil {
+			return err // Returns 400 with error message if validation fails
 		}
+		id, _ := c.ParamInt("id")
+		fmt.Printf("User ID from path: %d\n", id)
 		return c.JSON(http.StatusOK, user)
 	})
 
-	// Static Files from embed.FS
-	// app.Route("/static/*").Use(cart.StaticFS("/static", http.FS(myEmbedFS)))
-
-	// Run with Graceful Shutdown
+	// 4. Run with Graceful Shutdown
 	app.RunGraceful(":8080")
 }
 ```
 
+## Performance Highlights ⚡
+
+Cart is designed for maximum throughput:
+- **Context & Params Pooling**: Uses `sync.Pool` to reuse `Context` and `Params` objects, drastically reducing GC pressure.
+- **Middleware Flattening**: Middleware chains are pre-composed during route registration. The runtime overhead of method mixing and middleware lookup is **ZERO**.
+- **Radix Tree Routing**: Efficient path matching based on a high-performance radix tree.
+
 ## Core Concepts
 
 ### Middleware
-Cart uses an "Onion" model for middleware, similar to Koa.
+Cart uses an "Onion" model. Calling `next()` executes the next handler in the chain.
 
 ```go
+// Custom logger middleware
 app.Use("/", func(c *cart.Context, next cart.Next) {
     start := time.Now()
-    next() // Pass control to the next middleware
-    fmt.Printf("Latency: %v\n", time.Since(start))
+    next() 
+    fmt.Printf("[%s] %s %v\n", c.Request.Method, c.Request.URL.Path, time.Since(start))
 })
 ```
 
 #### Standard Middlewares
-Built-in middlewares are available for common tasks:
-- `cart.Logger()`: Colored request logging.
-- `cart.Recovery()`: Panic recovery.
-- `cart.Gzip()`: Gzip response compression.
-- `cart.RequestID()`: X-Request-ID generation/tracing.
-- `cart.CORS()`: Cross-Origin Resource Sharing handling.
+- `cart.Logger()`: Colored terminal output for requests.
+- `cart.Recovery()`: Recovers from panics and returns 500.
+- `cart.Gzip()`: Transparent Gzip compression.
+- `cart.RequestID()`: Injects `X-Request-ID` into headers.
+- `cart.CORS()`: Easy CORS configuration.
+- `cart.StaticFS()`: Serve files from `embed.FS` or `http.Dir`.
+
+### Data Binding & Validation
+The `Bind()` method automatically detects `Content-Type` (JSON/Form) and validates the struct using the `binding` tag.
 
 ```go
-app.Use("/", cart.Logger())
-app.Use("/", cart.Recovery())
-app.Use("/", cart.RequestID())
-app.Use("/", cart.CORS())
+type CreatePost struct {
+    Title string `json:"title" binding:"required"`
+    Body  string `json:"body" binding:"required"`
+}
 ```
-
-### Routing
-Routing is hierarchical and chainable.
-
-```go
-app.Route("/api").Route("/v1", func(r *cart.Router) {
-    r.GET(func(c *cart.Context) error {
-        c.String(200, "API V1 Root")
-        return nil
-    })
-    
-    r.Route("/users", func(sub *cart.Router) {
-        sub.GET(func(c *cart.Context) error {
-            // GET /api/v1/users
-            return nil
-        })
-    })
-})
-```
-
-### Data Validation
-Supports `binding:"required"` tag. If validation fails, `Bind` methods will return an error.
 
 ### Error Handling
-Handlers return `error`. You can define a global `ErrorHandler` in the engine.
+Handlers return an `error`. You can catch all errors globally using `app.ErrorHandler`.
 
 ```go
 app.ErrorHandler = func(c *cart.Context, err error) {
-    c.JSON(500, cart.H{"error": err.Error()})
+    c.JSON(http.StatusBadRequest, cart.H{"error": err.Error()})
 }
 ```
 
-### Graceful Shutdown
-Use `RunGraceful` to start the server. It listens for `SIGINT` and `SIGTERM` signals and shuts down the server gracefully, waiting for active connections to complete.
+### Lifecycle Hooks
+- `OnRequest(c *Context)`: Called immediately after a request enters the server.
+- `OnResponse(c *Context)`: Called after the response is sent (via `defer`).
 
-```go
-if err := app.RunGraceful(":8080"); err != nil {
-    log.Fatal(err)
-}
-```
+## Advanced Context API
+
+- `c.Context()`: Access the standard `context.Context`.
+- `c.ParamInt(key)`: Parse route parameters as integers.
+- `c.Query(key)` / `c.PostForm(key)`: Quick access to parameters.
+- `c.AbortWithStatus(code)`: Stop execution and return status.
+- `c.JSONP(code, callback, obj)`: Render JSONP for legacy browser support.
+

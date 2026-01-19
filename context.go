@@ -256,6 +256,24 @@ func (c *Context) Param(key string) (string, bool) {
 	return c.Params.Get(key)
 }
 
+// ParamInt returns the keyed parameter as an int.
+func (c *Context) ParamInt(key string) (int, error) {
+	val, ok := c.Param(key)
+	if !ok {
+		return 0, fmt.Errorf("parameter %s not found", key)
+	}
+	return strconv.Atoi(val)
+}
+
+// ParamInt64 returns the keyed parameter as an int64.
+func (c *Context) ParamInt64(key string) (int64, error) {
+	val, ok := c.Param(key)
+	if !ok {
+		return 0, fmt.Errorf("parameter %s not found", key)
+	}
+	return strconv.ParseInt(val, 10, 64)
+}
+
 // Abort prevents pending handlers from being called.
 func (c *Context) Abort() {
 	// Not fully implemented yet because our onion model is next based,
@@ -443,6 +461,15 @@ func (c *Context) IndentedJSON(code int, obj interface{}) {
 // It also sets the Content-Type as "application/json".
 func (c *Context) JSON(code int, obj interface{}) {
 	c.Render(code, render.JSON{Data: obj})
+}
+
+// JSONP serializes the given struct as JSON into the response body with a callback.
+func (c *Context) JSONP(code int, callback string, obj interface{}) {
+	c.Header("Content-Type", "application/javascript; charset=utf-16")
+	data, _ := json.Marshal(obj)
+	content := fmt.Sprintf("%s(%s);", callback, string(data))
+	c.Response.WriteHeader(code)
+	c.Response.Write([]byte(content))
 }
 
 // XML serializes the given struct as XML into the response body.
