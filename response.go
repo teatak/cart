@@ -29,7 +29,9 @@ func (w *ResponseWriter) reset(writer http.ResponseWriter) {
 func (w *ResponseWriter) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
-			debugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			if IsDebugging() {
+				debugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			}
 			return
 		}
 		w.status = code

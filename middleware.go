@@ -56,7 +56,12 @@ func CORS(config ...CORSConfig) Handler {
 		cfg = config[0]
 	}
 
-	origins := strings.Join(cfg.AllowOrigins, ", ")
+	origins := make(map[string]bool)
+	for _, o := range cfg.AllowOrigins {
+		origins[o] = true
+	}
+	allowAll := origins["*"]
+
 	methods := strings.Join(cfg.AllowMethods, ", ")
 	headers := strings.Join(cfg.AllowHeaders, ", ")
 	expose := strings.Join(cfg.ExposeHeaders, ", ")
@@ -69,14 +74,18 @@ func CORS(config ...CORSConfig) Handler {
 			return
 		}
 
-		// Basic "*" logic or matching
-		allowOrigin := origins
-		if origins == "*" {
-			allowOrigin = "*"
+		if allowAll {
+			c.Header("Access-Control-Allow-Origin", "*")
+		} else if origins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+		} else {
+			// Origin not allowed, proceed without setting CORS headers
+			// or strict block? usually just don't set header.
+			next()
+			return
 		}
 
-		c.Header("Access-Control-Allow-Origin", allowOrigin)
-		if cfg.AllowCredentials && allowOrigin != "*" {
+		if cfg.AllowCredentials && !allowAll {
 			c.Header("Access-Control-Allow-Credentials", "true")
 		}
 

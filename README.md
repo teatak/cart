@@ -8,18 +8,18 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 ```
 
-Current version: v2.0.0
+Current version: v2.1.0
 
 A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express, optimized for high-concurrency ⚡.
 
 ## Features
 
 - **Extreme Performance**: Registration-time middleware flattening and zero-allocation context pooling.
-- **Onion Architecture Middleware**: Powerful `func(ctx *Context, next Next)` style.
-- **Hierarchical Routing**: Chainable and explicit tree structure.
+- **Onion Architecture Middleware**: Powerful `func(ctx *Context, next Next)` style with full `Abort()` support.
+- **Hierarchical Routing**: Chainable and explicit tree structure with pre-calculated handler chains.
 - **Lifecycle Hooks**: `OnRequest` and `OnResponse` hooks for global intervention.
-- **Built-in Validation**: Smart binding with `binding:"required"` support.
-- **Graceful Shutdown**: Ready for production with safe termination.
+- **Security-First**: `TrustedProxies` support to prevent IP spoofing in `ClientIP()`.
+- **Production-Ready**: Configurable HTTP server timeouts and graceful shutdown support.
 - **Modern Standards**: Native support for `embed.FS`, CORS, Gzip, and RequestID.
 
 ## Installation
@@ -36,20 +36,20 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 	"github.com/teatak/cart/v2"
 )
 
 func main() {
 	app := cart.New()
 
-	// 1. Standard Middlewares
+	// 1. Server Configuration
+	app.ReadTimeout = 30 * time.Second
+	app.TrustedProxies = []string{"127.0.0.1", "192.168.1.1"}
+
+	// 2. Standard Middlewares
 	app.Use("/", cart.Logger())
 	app.Use("/", cart.Recovery())
-
-	// 2. Lifecycle Hooks
-	app.OnRequest = func(c *cart.Context) {
-		fmt.Println("Request Started:", c.Request.URL.Path)
-	}
 
 	// 3. Routing with Validation
 	type User struct {
@@ -60,10 +60,10 @@ func main() {
 	app.Route("/user/:id").POST(func(c *cart.Context) error {
 		var user User
 		if err := c.Bind(&user); err != nil {
-			return err // Returns 400 with error message if validation fails
+			return err 
 		}
 		id, _ := c.ParamInt("id")
-		fmt.Printf("User ID from path: %d\n", id)
+		fmt.Printf("User ID from path: %d, Client IP: %s\n", id, c.ClientIP())
 		return c.JSON(http.StatusOK, user)
 	})
 
@@ -74,61 +74,53 @@ func main() {
 
 ## Performance Highlights ⚡
 
-Cart is designed for maximum throughput:
-- **Context & Params Pooling**: Uses `sync.Pool` to reuse `Context` and `Params` objects, drastically reducing GC pressure.
-- **Middleware Flattening**: Middleware chains are pre-composed during route registration. The runtime overhead of method mixing and middleware lookup is **ZERO**.
-- **Radix Tree Routing**: Efficient path matching based on a high-performance radix tree.
+Cart is designed for maximum throughput and minimal GC pressure:
+- **Zero-Allocation Hot Path**: Context and parameters are pooled via `sync.Pool`. Request handlers avoid closure allocations during the request cycle.
+- **Middleware Pre-calculation**: All middleware chains (including inherited ones) are flattened into a single slice during registration. Runtime overhead of middleware lookup is **ZERO**.
+- **Struct Caching**: Reflection overhead in data binding (`Bind`, `Validate`) is minimized using a concurrent-safe `sync.Map` cache for struct metadata.
+- **Gzip Pooling**: `gzip.Writer` instances are recycled using `sync.Pool` to significantly reduce memory allocations during compression.
+- **Radix Tree Routing**: High-performance path matching with support for parameters and catch-alls.
+- **Smart Recovery**: In Release mode, `Recovery` middleware skips expensive source code reading to maximize speed and security.
 
 ## Core Concepts
 
-### Middleware
-Cart uses an "Onion" model. Calling `next()` executes the next handler in the chain.
+### Middleware Control
+Cart uses an "Onion" model with explicit control:
+- `next()`: Execute the next handler.
+- `c.Abort()`: Stop the chain immediately.
 
 ```go
-// Custom logger middleware
-app.Use("/", func(c *cart.Context, next cart.Next) {
-    start := time.Now()
+app.Use("/admin", func(c *cart.Context, next cart.Next) {
+    if !isAdmin(c) {
+        c.AbortWithStatus(403)
+        return
+    }
     next() 
-    fmt.Printf("[%s] %s %v\n", c.Request.Method, c.Request.URL.Path, time.Since(start))
 })
 ```
 
-#### Standard Middlewares
-- `cart.Logger()`: Colored terminal output for requests.
-- `cart.Recovery()`: Recovers from panics and returns 500.
-- `cart.Gzip()`: Transparent Gzip compression.
-- `cart.RequestID()`: Injects `X-Request-ID` into headers.
-- `cart.CORS()`: Easy CORS configuration.
-- `cart.StaticFS()`: Serve files from `embed.FS` or `http.Dir`.
-
-### Data Binding & Validation
-The `Bind()` method automatically detects `Content-Type` (JSON/Form) and validates the struct using the `binding` tag.
+### Security: Trusted Proxies
+To prevent IP spoofing, `cart` only parses `X-Forwarded-For` or `X-Real-IP` if the request originates from a `TrustedProxy`.
 
 ```go
-type CreatePost struct {
-    Title string `json:"title" binding:"required"`
-    Body  string `json:"body" binding:"required"`
-}
+app.TrustedProxies = []string{"10.0.0.1"} // Your Nginx/LB IP
 ```
 
-### Error Handling
-Handlers return an `error`. You can catch all errors globally using `app.ErrorHandler`.
+### Customizable Server
+Unlike most frameworks that hide the `http.Server` configuration, `cart` exposes it directly on the `Engine`:
 
 ```go
-app.ErrorHandler = func(c *cart.Context, err error) {
-    c.JSON(http.StatusBadRequest, cart.H{"error": err.Error()})
-}
+app.ReadTimeout = 60 * time.Second
+app.WriteTimeout = 60 * time.Second
+app.IdleTimeout = 120 * time.Second
 ```
-
-### Lifecycle Hooks
-- `OnRequest(c *Context)`: Called immediately after a request enters the server.
-- `OnResponse(c *Context)`: Called after the response is sent (via `defer`).
 
 ## Advanced Context API
 
-- `c.Context()`: Access the standard `context.Context`.
+- `c.ClientIP()`: Secure client IP detection.
 - `c.ParamInt(key)`: Parse route parameters as integers.
-- `c.Query(key)` / `c.PostForm(key)`: Quick access to parameters.
+- `c.Bind(obj)`: Auto-detect Content-Type (JSON/Form) and validate.
+- `c.HTML(code, name, data)`: Render templates with custom delims.
+- `c.JSONP(code, callback, obj)`: Render JSONP for legacy support.
 - `c.AbortWithStatus(code)`: Stop execution and return status.
-- `c.JSONP(code, callback, obj)`: Render JSONP for legacy browser support.
 

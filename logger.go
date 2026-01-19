@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -58,25 +59,27 @@ func colorForStatus(code int) string {
 	}
 }
 
+var methodColors = map[string]string{
+	"GET":     blue,
+	"POST":    cyan,
+	"PUT":     yellow,
+	"DELETE":  red,
+	"PATCH":   green,
+	"HEAD":    magenta,
+	"OPTIONS": white,
+}
+
 func colorForMethod(method string) string {
-	switch method {
-	case "GET":
-		return blue
-	case "POST":
-		return cyan
-	case "PUT":
-		return yellow
-	case "DELETE":
-		return red
-	case "PATCH":
-		return green
-	case "HEAD":
-		return magenta
-	case "OPTIONS":
-		return white
-	default:
-		return reset
+	if color, ok := methodColors[method]; ok {
+		return color
 	}
+	return reset
+}
+
+var gzipPool = sync.Pool{
+	New: func() interface{} {
+		return gzip.NewWriter(io.Discard)
+	},
 }
 
 // Gzip returns a middleware that compresses the response using gzip
@@ -89,12 +92,18 @@ func Gzip() Handler {
 
 		c.Header("Content-Encoding", "gzip")
 		c.Header("Vary", "Accept-Encoding")
-
-		gz := gzip.NewWriter(c.Response)
-		defer gz.Close()
+		// Delete Content-Length because the length changes after compression
+		c.Header("Content-Length", "")
 
 		// Wrap ResponseWriter to write gzipped data
 		oldWriter := c.Response.ResponseWriter
+		gz := gzipPool.Get().(*gzip.Writer)
+		gz.Reset(oldWriter)
+		defer func() {
+			gz.Close()
+			gzipPool.Put(gz)
+		}()
+
 		c.Response.ResponseWriter = &gzipWriter{ResponseWriter: oldWriter, Writer: gz}
 		defer func() {
 			c.Response.ResponseWriter = oldWriter
@@ -110,5 +119,9 @@ type gzipWriter struct {
 }
 
 func (g *gzipWriter) Write(b []byte) (int, error) {
+	// If Content-Type is missing, detect and set it before writing
+	if g.Header().Get("Content-Type") == "" {
+		g.Header().Set("Content-Type", http.DetectContentType(b))
+	}
 	return g.Writer.Write(b)
 }

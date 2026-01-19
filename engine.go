@@ -17,10 +17,10 @@ import (
 type Engine struct {
 	Router
 	delims     render.Delims
-	routers    map[string]*Router //saved routers
+	routers    map[string]*Router
 	pool       sync.Pool
 	paramsPool sync.Pool
-	tree       *node //match trees
+	tree       *node
 
 	NotFound HandlerFinal
 
@@ -29,6 +29,11 @@ type Engine struct {
 
 	ForwardedByClientIP bool
 	AppEngine           bool
+	TrustedProxies      []string
+
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 
 	OnRequest    func(*Context)
 	OnResponse   func(*Context)
@@ -55,6 +60,13 @@ func (e *Engine) putParams(ps *Params) {
 	if ps != nil {
 		e.paramsPool.Put(ps)
 	}
+}
+
+func (e *Engine) recycleContext(c *Context) {
+	if ps := c.Params; ps != nil {
+		e.putParams(ps)
+	}
+	e.pool.Put(c)
 }
 
 func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
@@ -97,11 +109,7 @@ func (e *Engine) addRoute(router *Router) {
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := e.pool.Get().(*Context)
-	// Safety: Ensure Context and Params are put back even on unexpected panics
-	defer e.pool.Put(c)
-	defer func() {
-		e.putParams(c.Params)
-	}()
+	defer e.recycleContext(c)
 
 	c.reset(w, req)
 	e.serveHTTP(c)
@@ -123,6 +131,23 @@ func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
 	return methods
 }
 
+func (e *Engine) serve404(c *Context, path string) {
+	// 404 error
+	// make temp router
+	c.Router, _ = e.getRouter(path)
+	if c.Response.Size() == -1 && c.Response.Status() == 200 {
+		if e.NotFound != nil {
+			if err := e.NotFound(c); err != nil && e.ErrorHandler != nil {
+				e.ErrorHandler(c, err)
+			}
+		} else {
+			c.ErrorHTML(404,
+				"404 Not Found",
+				"The page <b style='color:red'>"+path+"</b> is not found")
+		}
+	}
+}
+
 func (e *Engine) serveHTTP(c *Context) {
 	if e.OnRequest != nil {
 		e.OnRequest(c)
@@ -134,20 +159,7 @@ func (e *Engine) serveHTTP(c *Context) {
 	httpMethod := c.Request.Method
 
 	final404 := func() {
-		// 404 error
-		// make temp router
-		c.Router, _ = e.getRouter(path)
-		if c.Response.Size() == -1 && c.Response.Status() == 200 {
-			if e.NotFound != nil {
-				if err := e.NotFound(c); err != nil && e.ErrorHandler != nil {
-					e.ErrorHandler(c, err)
-				}
-			} else {
-				c.ErrorHTML(404,
-					"404 Not Found",
-					"The page <b style='color:red'>"+path+"</b> is not found")
-			}
-		}
+		e.serve404(c, path)
 	}
 
 	if root := e.tree; root != nil {
@@ -232,9 +244,6 @@ func (e *Engine) mixComposed(absolutePath string) (*Router, HandlerCompose) {
 	return nil, nil
 }
 
-/*
-init new Engine
-*/
 func (e *Engine) init() {
 	e.Router = Router{
 		Path: "/",
@@ -245,18 +254,21 @@ func (e *Engine) init() {
 	}
 	e.tree = &node{}
 	e.routers = make(map[string]*Router)
+
+	e.ReadTimeout = 90 * time.Second
+	e.WriteTimeout = 90 * time.Second
+	e.IdleTimeout = 90 * time.Second
 }
 
 func (e *Engine) Server(addr ...string) (server *http.Server) {
 	address := resolveAddress(addr)
 	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), address)
 	server = &http.Server{
-		Addr:        address,
-		Handler:     e,
-		ReadTimeout: time.Second * 90,
-		//ReadHeaderTimeout: time.Second * 90,
-		WriteTimeout: time.Second * 90,
-		//IdleTimeout: time.Second * 90,
+		Addr:         address,
+		Handler:      e,
+		ReadTimeout:  e.ReadTimeout,
+		WriteTimeout: e.WriteTimeout,
+		IdleTimeout:  e.IdleTimeout,
 	}
 	return
 }
@@ -271,51 +283,41 @@ func (e *Engine) ServerKeepAlive(addr ...string) (server *http.Server) {
 	return
 }
 
-/*
-Run the server
-*/
 func (e *Engine) Run(addr string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
 	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), addr)
 	server = &http.Server{
-		Addr:        addr,
-		Handler:     e,
-		ReadTimeout: time.Second * 90,
-		//ReadHeaderTimeout: time.Second * 90,
-		WriteTimeout: time.Second * 90,
-		//IdleTimeout: time.Second * 90,
+		Addr:         addr,
+		Handler:      e,
+		ReadTimeout:  e.ReadTimeout,
+		WriteTimeout: e.WriteTimeout,
+		IdleTimeout:  e.IdleTimeout,
 	}
 	err = server.ListenAndServe()
 	return
 }
 
-/*
-RunTLS
-*/
 func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
 	debugPrint("PID:%d Listening and serving HTTPS on %s\n", os.Getpid(), addr)
 	server = &http.Server{
-		Addr:        addr,
-		Handler:     e,
-		ReadTimeout: time.Second * 90,
-		//ReadHeaderTimeout: time.Second * 90,
-		WriteTimeout: time.Second * 90,
-		//IdleTimeout: time.Second * 90,
+		Addr:         addr,
+		Handler:      e,
+		ReadTimeout:  e.ReadTimeout,
+		WriteTimeout: e.WriteTimeout,
+		IdleTimeout:  e.IdleTimeout,
 	}
 	err = server.ListenAndServeTLS(certFile, keyFile)
 	return
 }
 
-/*
-RunGraceful runs the server with graceful shutdown support
-*/
 func (e *Engine) RunGraceful(addr string) error {
 	server := &http.Server{
 		Addr:         addr,
 		Handler:      e,
-		ReadTimeout:  time.Second * 90,
-		WriteTimeout: time.Second * 90,
+		ReadTimeout:  e.ReadTimeout,
+		WriteTimeout: e.WriteTimeout,
+		IdleTimeout:  e.IdleTimeout,
 	}
 
 	go func() {

@@ -42,16 +42,16 @@ type Context struct {
 	Router *Router
 	Params *Params
 	Keys   map[string]interface{}
+
+	aborted bool
 }
 
-/*
-reset Con
-*/
 func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.Response.reset(w)
 	c.Request = req
 	c.Params = nil
 	c.Router = nil
+	c.aborted = false
 	if c.Keys != nil {
 		for k := range c.Keys {
 			delete(c.Keys, k)
@@ -78,28 +78,7 @@ func (c *Context) Bind(obj interface{}) error {
 
 // Validate checks the struct tags for validation rules (currently supports 'required')
 func (c *Context) Validate(obj interface{}) error {
-	val := reflect.ValueOf(obj)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-	}
-
-	if val.Kind() != reflect.Struct {
-		return nil
-	}
-
-	typ := val.Type()
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		structField := typ.Field(i)
-		tag := structField.Tag.Get("binding")
-
-		if strings.Contains(tag, "required") {
-			if isZeroValue(field) {
-				return fmt.Errorf("field '%s' is required", structField.Name)
-			}
-		}
-	}
-	return nil
+	return validate(obj)
 }
 
 func isZeroValue(v reflect.Value) bool {
@@ -145,100 +124,6 @@ func (c *Context) BindForm(obj interface{}) error {
 	return mapValues(obj, c.Request.Form)
 }
 
-// Query returns the keyed url query value if it exists
-func (c *Context) Query(key string) string {
-	return c.Request.URL.Query().Get(key)
-}
-
-// DefaultQuery returns the keyed url query value if it exists, otherwise it returns the defaultValue
-func (c *Context) DefaultQuery(key, defaultValue string) string {
-	if value := c.Query(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-// PostForm returns the keyed post form value if it exists
-func (c *Context) PostForm(key string) string {
-	return c.Request.PostFormValue(key)
-}
-
-// DefaultPostForm returns the keyed post form value if it exists, otherwise it returns the defaultValue
-func (c *Context) DefaultPostForm(key, defaultValue string) string {
-	if value := c.PostForm(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func mapValues(ptr interface{}, form map[string][]string) error {
-	typ := reflect.TypeOf(ptr).Elem()
-	val := reflect.ValueOf(ptr).Elem()
-
-	if typ.Kind() != reflect.Struct {
-		return fmt.Errorf("binding element must be a struct")
-	}
-
-	for i := 0; i < typ.NumField(); i++ {
-		typeField := typ.Field(i)
-		structField := val.Field(i)
-
-		if !structField.CanSet() {
-			continue
-		}
-
-		inputFieldName := typeField.Tag.Get("form")
-		if inputFieldName == "" {
-			inputFieldName = typeField.Name
-		}
-
-		inputValue, exists := form[inputFieldName]
-		if !exists {
-			continue
-		}
-
-		switch structField.Kind() {
-		case reflect.Int:
-			return setIntField(inputValue[0], 0, structField)
-		case reflect.Int64:
-			return setIntField(inputValue[0], 64, structField)
-		case reflect.Bool:
-			return setBoolField(inputValue[0], structField)
-		case reflect.String:
-			structField.SetString(inputValue[0])
-		case reflect.Slice:
-			if structField.Type().Elem().Kind() == reflect.String {
-				structField.Set(reflect.ValueOf(inputValue))
-			}
-		default:
-			return fmt.Errorf("unsupported type %s for field %s", structField.Kind(), typeField.Name)
-		}
-	}
-	return nil
-}
-
-func setIntField(value string, bitSize int, field reflect.Value) error {
-	if value == "" {
-		value = "0"
-	}
-	intVal, err := strconv.ParseInt(value, 10, bitSize)
-	if err == nil {
-		field.SetInt(intVal)
-	}
-	return err
-}
-
-func setBoolField(value string, field reflect.Value) error {
-	if value == "" {
-		value = "false"
-	}
-	boolVal, err := strconv.ParseBool(value)
-	if err == nil {
-		field.SetBool(boolVal)
-	}
-	return err
-}
-
 // RESPONSE
 func bodyAllowedForStatus(status int) bool {
 	switch {
@@ -276,9 +161,12 @@ func (c *Context) ParamInt64(key string) (int64, error) {
 
 // Abort prevents pending handlers from being called.
 func (c *Context) Abort() {
-	// Not fully implemented yet because our onion model is next based,
-	// but we can set a flag that 'next()' will check, or provide these
-	// convenience methods if handlers/middlewares check themselves.
+	c.aborted = true
+}
+
+// IsAborted returns true if the current context was aborted.
+func (c *Context) IsAborted() bool {
+	return c.aborted
 }
 
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
@@ -371,11 +259,24 @@ func (c *Context) Cookie(name string) (string, error) {
 	return val, nil
 }
 
-// ClientIP implements the best effort algorithm to return the real client IP, it parses
-// X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
-// Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
+func (c *Context) isTrustedProxy(ip string) bool {
+	if len(c.Router.Engine.TrustedProxies) == 0 {
+		return false
+	}
+	for _, trusted := range c.Router.Engine.TrustedProxies {
+		if trusted == ip {
+			return true
+		}
+	}
+	return false
+}
+
+// ClientIP implements the best effort algorithm to return the real client IP.
+// It parses X-Forwarded-For and X-Real-IP if the request comes from a trusted proxy.
 func (c *Context) ClientIP() string {
-	if c.Router.Engine.ForwardedByClientIP {
+	remoteIP, _, _ := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
+
+	if c.Router.Engine.ForwardedByClientIP && c.isTrustedProxy(remoteIP) {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		if index := strings.IndexByte(clientIP, ','); index >= 0 {
 			clientIP = clientIP[0:index]
@@ -396,11 +297,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
-		return ip
-	}
-
-	return ""
+	return remoteIP
 }
 
 // ContentType returns the Content-Type header of the request.

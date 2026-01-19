@@ -30,14 +30,30 @@ func File(relativePath string) Handler {
 	}
 }
 
+type fallbackResponseWriter struct {
+	http.ResponseWriter
+	code int
+}
+
+func (w *fallbackResponseWriter) WriteHeader(code int) {
+	w.code = code
+	if code != http.StatusNotFound {
+		w.ResponseWriter.WriteHeader(code)
+	}
+}
+
+func (w *fallbackResponseWriter) Write(b []byte) (int, error) {
+	if w.code == http.StatusNotFound {
+		return len(b), nil
+	}
+	return w.ResponseWriter.Write(b)
+}
+
 func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, fallback string) http.Handler {
-	h := http.FileServer(fs)
+	fileServer := http.FileServer(fs)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		p := strings.TrimPrefix(r.URL.Path, prefix)
 		rp := strings.TrimPrefix(r.URL.RawPath, prefix)
-		const indexPage = "/index.html"
-		fail := false
-		isDir := false
 		if len(p) < len(r.URL.Path) && (r.URL.RawPath == "" || len(rp) < len(r.URL.RawPath)) {
 			r2 := new(http.Request)
 			*r2 = *r
@@ -45,36 +61,19 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, 
 			*r2.URL = *r.URL
 			r2.URL.Path = p
 			r2.URL.RawPath = rp
-			f, err := fs.Open(p)
-			if err != nil {
-				fail = true
-			} else {
-				defer f.Close()
-				fi, _ := f.Stat()
-				if fi.IsDir() {
-					isDir = true
-					// use contents of index.html for directory, if present
-					index := strings.TrimSuffix(p, "/") + indexPage
-					ff, err := fs.Open(index)
-					if err != nil {
-						fail = true
-					} else {
-						defer ff.Close()
+
+			fw := &fallbackResponseWriter{ResponseWriter: w}
+			fileServer.ServeHTTP(fw, r2)
+
+			if fw.code == http.StatusNotFound {
+				if fallback != "" {
+					if IsDebugging() {
+						debugPrint("[WARNING] File not found: %s. Serving fallback: %s", p, fallback)
 					}
-				}
-			}
-			if fail {
-				if isDir && listDirectory {
-					h.ServeHTTP(w, r2)
+					http.ServeFile(w, r, fallback)
 				} else {
-					if fallback != "" {
-						http.ServeFile(w, r2, fallback)
-					} else {
-						http.NotFound(w, r2)
-					}
+					http.NotFound(w, r)
 				}
-			} else {
-				h.ServeHTTP(w, r2)
 			}
 		} else {
 			http.NotFound(w, r)

@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"os"
 	"path"
+	"strings"
 )
 
 type Next func()
@@ -40,12 +41,10 @@ func (h H) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 }
 
 func filterFlags(content string) string {
-	for i, char := range content {
-		if char == ' ' || char == ';' {
-			return content[:i]
-		}
+	if before, _, found := strings.Cut(content, ";"); found {
+		return strings.TrimSpace(before)
 	}
-	return content
+	return strings.TrimSpace(content)
 }
 
 func resolveAddress(addr []string) string {
@@ -67,7 +66,7 @@ func resolveAddress(addr []string) string {
 func lastChar(str string) uint8 {
 	size := len(str)
 	if size == 0 {
-		panic("The length of the string can't be 0")
+		return 0
 	}
 	return str[size-1]
 }
@@ -94,6 +93,9 @@ func makeCompose(handles ...Handler) HandlerCompose {
 		innerHandle := handle
 		tempHandle := func(c *Context, next Next) Next {
 			return func() {
+				if c != nil && c.IsAborted() {
+					return
+				}
 				innerHandle(c, next)
 			}
 		}
@@ -124,19 +126,17 @@ compose HandlerCompose
 	composed()
 */
 func compose(functions ...HandlerCompose) HandlerCompose {
-	if len(functions) == 0 {
+	switch len(functions) {
+	case 0:
 		return nil
-	}
-	if len(functions) == 1 {
+	case 1:
 		return functions[0]
 	}
 
 	return func(c *Context, next Next) Next {
-		last := functions[len(functions)-1]
-		rest := functions[0 : len(functions)-1]
-		composed := last(c, next)
-		for i := range rest {
-			composed = rest[len(rest)-1-i](c, composed)
+		composed := next
+		for i := len(functions) - 1; i >= 0; i-- {
+			composed = functions[i](c, composed)
 		}
 		return composed
 	}

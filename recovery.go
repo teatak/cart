@@ -76,7 +76,7 @@ func stack(skip int) []byte {
 		}
 		// Print this much at least.  If we can't find the source, it won't show.
 		fmt.Fprintf(buf, "%s:%d (0x%x)\n", file, line, pc)
-		if file != lastFile {
+		if IsDebugging() && file != lastFile {
 			data, err := os.ReadFile(file)
 			if err != nil {
 				continue
@@ -84,7 +84,11 @@ func stack(skip int) []byte {
 			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
-		fmt.Fprintf(buf, "\t%s: %s\n", function(pc), source(lines, line))
+		if IsDebugging() {
+			fmt.Fprintf(buf, "\t%s: %s\n", function(pc), source(lines, line))
+		} else {
+			fmt.Fprintf(buf, "\t%s\n", function(pc))
+		}
 	}
 	return buf.Bytes()
 }
