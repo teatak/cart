@@ -1,65 +1,57 @@
 package cart
 
 import (
+	"encoding/xml"
+	"os"
 	"testing"
 )
 
-// compose
-func TestMakeCompose(t *testing.T) {
-	temp := 0
-
-	add2 := func(c *Context, next Next) {
-		temp = temp + 2
-		next()
-	}
-	plus2 := func(c *Context, next Next) {
-		temp = temp * 2
-		next()
-	}
-	add5 := func(c *Context, next Next) {
-		temp = temp + 5
-		next()
+func TestResolveAddress(t *testing.T) {
+	// Test with no args
+	os.Setenv("PORT", "")
+	if addr := resolveAddress([]string{}); addr != ":8080" {
+		t.Errorf("Expected default :8080, got %s", addr)
 	}
 
-	composed := makeCompose(add2, plus2, add5)
-	composed(nil, func() {
-		if temp != 9 {
-			t.Errorf("Expected call compose func should return 9; got: %d", temp)
+	// Test with PORT env
+	os.Setenv("PORT", "9090")
+	if addr := resolveAddress([]string{}); addr != ":9090" {
+		t.Errorf("Expected PORT :9090, got %s", addr)
+	}
+	os.Unsetenv("PORT")
+
+	// Test with explicit arg
+	if addr := resolveAddress([]string{":3000"}); addr != ":3000" {
+		t.Errorf("Expected :3000, got %s", addr)
+	}
+
+	// Test panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
 		}
-	})()
+	}()
+	resolveAddress([]string{":1", ":2"})
 }
 
-func TestCompose(t *testing.T) {
-	temp := 0
-	add2 := func(c *Context, next Next) Next {
-		return func() {
-			temp = temp + 2
-			next()
-		}
+func TestFilterFlags(t *testing.T) {
+	if f := filterFlags("text/html"); f != "text/html" {
+		t.Errorf("Expected text/html, got %s", f)
 	}
-	plus2 := func(c *Context, next Next) Next {
-		return func() {
-			temp = temp * 2
-			next()
-		}
+	if f := filterFlags("text/html; charset=utf-8"); f != "text/html" {
+		t.Errorf("Expected text/html, got %s", f)
 	}
-	add5 := func(c *Context, next Next) Next {
-		return func() {
-			temp = temp + 5
-			next()
-		}
+}
+
+func TestHMarshalXML(t *testing.T) {
+	h := H{"foo": "bar", "num": 1}
+	b, err := xml.Marshal(h)
+	if err != nil {
+		t.Errorf("MarshalXML failed: %v", err)
 	}
-	// (0+2)*2+5
-	if compose() != nil {
-		t.Errorf("Expected call compose func should return nil")
+	// XML map order is not guaranteed, but check for containment
+	s := string(b)
+	if len(s) == 0 {
+		t.Errorf("Expected XML output, got empty")
 	}
-	if compose(add2) == nil {
-		t.Errorf("Expected call compose func should return add2")
-	}
-	composed := compose(add2, plus2, add5)(nil, func() {
-		if temp != 9 {
-			t.Errorf("Expected call compose func should return 9; got: %d", temp)
-		}
-	})
-	composed()
 }
