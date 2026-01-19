@@ -31,11 +31,21 @@ func (r *Router) flatten() {
 	}
 
 	baseComposed := r.composed
+
+	// 先获取 ANY handler
+	var anyHandler HandlerCompose
+	if mh, ok := r.getMethod("ANY"); ok {
+		anyHandler = mh
+	}
+
 	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "ANY"}
 	for _, m := range methods {
 		var handler HandlerCompose
 		if mh, ok := r.getMethod(m); ok {
 			handler = mh
+		} else if m != "ANY" && anyHandler != nil {
+			// 如果没有特定方法 handler 且有 ANY handler，使用 ANY handler
+			handler = anyHandler
 		}
 
 		if baseComposed != nil {
@@ -60,6 +70,9 @@ func (r *Router) use(absolutePath string, handler HandlerCompose) *Router {
 	}
 	if !find {
 		r.Engine.addRoute(next)
+	} else {
+		// 关键修复：即使路由已存在，也要重新计算 handler 链
+		next.flatten()
 	}
 	return next
 }
@@ -73,6 +86,9 @@ func (r *Router) handle(httpMethod, absolutePath string, handler HandlerCompose)
 	next.methods = append(next.methods, method)
 	if !find {
 		r.Engine.addRoute(next)
+	} else {
+		// 关键修复：即使路由已存在，也要重新计算 handler 链
+		next.flatten()
 	}
 	return next
 }
