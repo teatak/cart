@@ -1,14 +1,17 @@
 package cart
 
 import (
+	"context"
 	"html/template"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
-	"github.com/teatak/cart/render"
+	"github.com/teatak/cart/v2/render"
 )
 
 type Engine struct {
@@ -25,6 +28,10 @@ type Engine struct {
 
 	ForwardedByClientIP bool
 	AppEngine           bool
+
+	OnRequest    func(*Context)
+	OnResponse   func(*Context)
+	ErrorHandler func(*Context, error)
 }
 
 var _ http.Handler = &Engine{}
@@ -99,6 +106,12 @@ func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
 }
 
 func (e *Engine) serveHTTP(c *Context) {
+	if e.OnRequest != nil {
+		e.OnRequest(c)
+	}
+	if e.OnResponse != nil {
+		defer e.OnResponse(c)
+	}
 	path := c.Request.URL.Path
 	httpMethod := c.Request.Method
 
@@ -108,7 +121,9 @@ func (e *Engine) serveHTTP(c *Context) {
 		c.Router, _ = e.getRouter(path)
 		if c.Response.Size() == -1 && c.Response.Status() == 200 {
 			if e.NotFound != nil {
-				e.NotFound(c)
+				if err := e.NotFound(c); err != nil && e.ErrorHandler != nil {
+					e.ErrorHandler(c, err)
+				}
 			} else {
 				c.ErrorHTML(404,
 					"404 Not Found",
@@ -263,6 +278,39 @@ func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *h
 	}
 	err = server.ListenAndServeTLS(certFile, keyFile)
 	return
+}
+
+/*
+RunGraceful runs the server with graceful shutdown support
+*/
+func (e *Engine) RunGraceful(addr string) error {
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      e,
+		ReadTimeout:  time.Second * 90,
+		WriteTimeout: time.Second * 90,
+	}
+
+	go func() {
+		debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), addr)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			debugError(err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	debugPrint("Shutdown Server ...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		debugError(err)
+		return err
+	}
+	debugPrint("Server exiting")
+	return nil
 }
 
 func (engine *Engine) LoadHTMLGlob(pattern string) {

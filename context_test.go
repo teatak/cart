@@ -22,6 +22,6 @@ func TestParams(t *testing.T) {
 }
 
 func TestContext(t *testing.T) {
-	c := &Context{}
+	c := &Context{Response: &ResponseWriter{}}
 	c.reset(nil, nil)
 }

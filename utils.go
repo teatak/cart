@@ -10,7 +10,7 @@ type Next func()
 
 // normal handler
 type Handler func(*Context, Next)
-type HandlerFinal func(*Context)
+type HandlerFinal func(*Context) error
 type HandlerCompose func(*Context, Next) Next
 
 type H map[string]interface{}

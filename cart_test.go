@@ -39,11 +39,12 @@ func handleAll(c *Context, next Next) {
 	debugPrint("handleAll end")
 }
 
-func handlePs(c *Context) {
+func handlePs(c *Context) error {
 	debugPrint("handlePs begin")
 	id, _ := c.Params.Get("id")
 	debugPrint("id:%s", id)
 	debugPrint("handlePs end")
+	return nil
 }
 
 func TestEngine(t *testing.T) {

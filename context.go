@@ -2,16 +2,19 @@ package cart
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
-	"github.com/teatak/cart/render"
+	"github.com/teatak/cart/v2/render"
 )
 
 type Param struct {
@@ -48,7 +51,112 @@ func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 	c.Request = req
 	c.Params = nil
 	c.Router = nil
-	c.Keys = nil
+	if c.Keys != nil {
+		for k := range c.Keys {
+			delete(c.Keys, k)
+		}
+	}
+}
+
+// Bind checks the Content-Type to select a binding engine automatically
+func (c *Context) Bind(obj interface{}) error {
+	contentType := c.ContentType()
+	if strings.Contains(contentType, "application/json") {
+		return c.BindJSON(obj)
+	} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
+		return c.BindForm(obj)
+	}
+	return fmt.Errorf("binding not supported for %s", contentType)
+}
+
+// BindJSON reads the body and binds it to the interface
+func (c *Context) BindJSON(obj interface{}) error {
+	if c.Request.Body == nil {
+		return fmt.Errorf("invalid request body")
+	}
+	decoder := json.NewDecoder(c.Request.Body)
+	return decoder.Decode(obj)
+}
+
+// BindQuery binds the URL query parameters to the interface
+func (c *Context) BindQuery(obj interface{}) error {
+	return mapValues(obj, c.Request.URL.Query())
+}
+
+// BindForm binds the form data to the interface
+func (c *Context) BindForm(obj interface{}) error {
+	if err := c.Request.ParseForm(); err != nil {
+		return err
+	}
+	return mapValues(obj, c.Request.Form)
+}
+
+func mapValues(ptr interface{}, form map[string][]string) error {
+	typ := reflect.TypeOf(ptr).Elem()
+	val := reflect.ValueOf(ptr).Elem()
+
+	if typ.Kind() != reflect.Struct {
+		return fmt.Errorf("binding element must be a struct")
+	}
+
+	for i := 0; i < typ.NumField(); i++ {
+		typeField := typ.Field(i)
+		structField := val.Field(i)
+
+		if !structField.CanSet() {
+			continue
+		}
+
+		inputFieldName := typeField.Tag.Get("form")
+		if inputFieldName == "" {
+			inputFieldName = typeField.Name
+		}
+
+		inputValue, exists := form[inputFieldName]
+		if !exists {
+			continue
+		}
+
+		switch structField.Kind() {
+		case reflect.Int:
+			return setIntField(inputValue[0], 0, structField)
+		case reflect.Int64:
+			return setIntField(inputValue[0], 64, structField)
+		case reflect.Bool:
+			return setBoolField(inputValue[0], structField)
+		case reflect.String:
+			structField.SetString(inputValue[0])
+		case reflect.Slice:
+			if structField.Type().Elem().Kind() == reflect.String {
+				structField.Set(reflect.ValueOf(inputValue))
+			}
+		default:
+			return fmt.Errorf("unsupported type %s for field %s", structField.Kind(), typeField.Name)
+		}
+	}
+	return nil
+}
+
+func setIntField(value string, bitSize int, field reflect.Value) error {
+	if value == "" {
+		value = "0"
+	}
+	intVal, err := strconv.ParseInt(value, 10, bitSize)
+	if err == nil {
+		field.SetInt(intVal)
+	}
+	return err
+}
+
+func setBoolField(value string, field reflect.Value) error {
+	if value == "" {
+		value = "false"
+	}
+	boolVal, err := strconv.ParseBool(value)
+	if err == nil {
+		field.SetBool(boolVal)
+	}
+	return err
 }
 
 // RESPONSE

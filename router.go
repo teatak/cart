@@ -71,7 +71,13 @@ func (r *Router) ANY(handler Handler) *Router {
 
 func (r *Router) Handle(httpMethod string, handler HandlerFinal) *Router {
 	tempHandler := func(c *Context, next Next) {
-		handler(c)
+		if err := handler(c); err != nil {
+			if r.Engine.ErrorHandler != nil {
+				r.Engine.ErrorHandler(c, err)
+			} else {
+				c.ErrorHTML(500, "Internal Server Error", err.Error())
+			}
+		}
 	}
 	return r.handle(httpMethod, r.Path, makeCompose(tempHandler))
 }
