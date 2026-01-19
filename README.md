@@ -8,7 +8,7 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 ```
 
-Current version: v2.1.1
+Current version: v2.1.2
 
 A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express, optimized for high-concurrency ⚡.
 
