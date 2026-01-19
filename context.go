@@ -62,11 +62,61 @@ func (c *Context) reset(w http.ResponseWriter, req *http.Request) {
 func (c *Context) Bind(obj interface{}) error {
 	contentType := c.ContentType()
 	if strings.Contains(contentType, "application/json") {
-		return c.BindJSON(obj)
+		if err := c.BindJSON(obj); err != nil {
+			return err
+		}
 	} else if strings.Contains(contentType, "application/x-www-form-urlencoded") {
-		return c.BindForm(obj)
+		if err := c.BindForm(obj); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("binding not supported for %s", contentType)
 	}
-	return fmt.Errorf("binding not supported for %s", contentType)
+	return c.Validate(obj)
+}
+
+// Validate checks the struct tags for validation rules (currently supports 'required')
+func (c *Context) Validate(obj interface{}) error {
+	val := reflect.ValueOf(obj)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		structField := typ.Field(i)
+		tag := structField.Tag.Get("binding")
+
+		if strings.Contains(tag, "required") {
+			if isZeroValue(field) {
+				return fmt.Errorf("field '%s' is required", structField.Name)
+			}
+		}
+	}
+	return nil
+}
+
+func isZeroValue(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.String, reflect.Slice, reflect.Array, reflect.Map:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Ptr:
+		return v.IsNil()
+	}
+	return reflect.DeepEqual(v.Interface(), reflect.Zero(v.Type()).Interface())
 }
 
 // BindJSON reads the body and binds it to the interface
@@ -80,7 +130,10 @@ func (c *Context) BindJSON(obj interface{}) error {
 
 // BindQuery binds the URL query parameters to the interface
 func (c *Context) BindQuery(obj interface{}) error {
-	return mapValues(obj, c.Request.URL.Query())
+	if err := mapValues(obj, c.Request.URL.Query()); err != nil {
+		return err
+	}
+	return c.Validate(obj)
 }
 
 // BindForm binds the form data to the interface

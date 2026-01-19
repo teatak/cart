@@ -70,17 +70,21 @@ func main() {
 		return fmt.Errorf("something went wrong")
 	})
 	
-	// Data Binding Example
+	// Data Binding & Validation Example
 	type User struct {
-		Name string `json:"name"`
+		Name  string `json:"name" binding:"required"` // Mandatory field
+		Email string `json:"email"`
 	}
 	app.Route("/user").POST(func(c *cart.Context) error {
 		var user User
 		if err := c.BindJSON(&user); err != nil {
-			return err
+			return err // Will return error if 'name' is missing
 		}
 		return c.JSON(http.StatusOK, user)
 	})
+
+	// Static Files from embed.FS
+	// app.Route("/static/*").Use(cart.StaticFS("/static", http.FS(myEmbedFS)))
 
 	// Run with Graceful Shutdown
 	app.RunGraceful(":8080")
@@ -119,8 +123,11 @@ app.Route("/api").Route("/v1", func(r *cart.Router) {
 })
 ```
 
+### Data Validation
+Supports `binding:"required"` tag. If validation fails, `Bind` methods will return an error.
+
 ### Error Handling
-Handlers now return `error`. You can define a global `ErrorHandler` in the engine.
+Handlers return `error`. You can define a global `ErrorHandler` in the engine.
 
 ```go
 app.ErrorHandler = func(c *cart.Context, err error) {

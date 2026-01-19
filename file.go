@@ -82,7 +82,7 @@ func StripPrefixFallback(prefix string, fs http.FileSystem, listDirectory bool, 
 	})
 }
 
-//fallback can be empty if fallback is not empty http will render fallback path
+// fallback can be empty if fallback is not empty http will render fallback path
 func Static(relativePath string, listDirectory bool, fallback ...string) Handler {
 	if strings.Contains(relativePath, ":") || strings.Contains(relativePath, "*") {
 		panic("URL parameters can not be used when serving a static folder")
@@ -137,4 +137,16 @@ func (fs onlyfilesFS) Open(name string) (http.File, error) {
 func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 	// this disables directory listing
 	return nil, nil
+}
+
+// StaticFS works like Static but with a custom http.FileSystem
+func StaticFS(prefix string, fs http.FileSystem) Handler {
+	return func(c *Context, next Next) {
+		index := strings.LastIndex(prefix, "*")
+		if index != -1 {
+			prefix = prefix[0:index]
+		}
+		fileServer := http.StripPrefix(prefix, http.FileServer(fs))
+		fileServer.ServeHTTP(c.Response, c.Request)
+	}
 }
