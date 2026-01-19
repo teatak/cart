@@ -88,6 +88,7 @@ func (e *Engine) addRoute(router *Router) {
 	}
 	//add router
 	debugPrint("Add Router %s", router.Path)
+	router.flatten() // Pre-calculate middleware chains
 	e.routers[router.Path] = router
 	e.tree.addRoute(router.Path, router)
 	//if _, found := e.tree.findCaseInsensitivePath(router.Path, true); !found {
@@ -155,20 +156,23 @@ func (e *Engine) serveHTTP(c *Context) {
 			c.Router = router
 			c.Params = ps
 
-			//methods
-			methods := e.mixMethods(httpMethod, router)
-			//middleware
-
-			composed := router.composed
-			if composed != nil && methods != nil {
-				composed = compose(composed, methods)
-			} else if composed == nil && methods != nil {
-				composed = methods
+			// Get pre-composed handler
+			var handler HandlerCompose
+			if h, ok := router.flattenHandlers[httpMethod]; ok {
+				handler = h
+			} else if h, ok := router.flattenHandlers["ANY"]; ok {
+				handler = h
 			}
-			if composed != nil {
-				composed(c, func() {})()
+
+			if handler != nil {
+				handler(c, func() {})()
 			} else {
-				final404()
+				// try middleware only
+				if router.composed != nil {
+					router.composed(c, final404)()
+				} else {
+					final404()
+				}
 			}
 			c.Response.WriteHeaderFinal()
 			return

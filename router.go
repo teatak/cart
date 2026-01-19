@@ -8,10 +8,11 @@ type (
 		handler HandlerCompose
 	}
 	Router struct {
-		Engine   *Engine
-		Path     string
-		composed HandlerCompose
-		methods  []method
+		Engine          *Engine
+		Path            string
+		composed        HandlerCompose
+		methods         []method
+		flattenHandlers map[string]HandlerCompose // Pre-calculated handlers per method
 	}
 )
 
@@ -22,6 +23,49 @@ func (r *Router) getMethod(httpMethod string) (HandlerCompose, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (r *Router) flatten() {
+	if r.flattenHandlers == nil {
+		r.flattenHandlers = make(map[string]HandlerCompose)
+	}
+
+	// 1. Find parent middleware chain
+	parentRouter, _ := r.Engine.mixComposed(r.Path)
+	var parentComposed HandlerCompose
+	if parentRouter != nil {
+		parentComposed = parentRouter.composed
+	}
+
+	// 2. Mix with current router's middleware
+	baseComposed := r.composed
+	if parentComposed != nil {
+		if baseComposed != nil {
+			baseComposed = compose(parentComposed, baseComposed)
+		} else {
+			baseComposed = parentComposed
+		}
+	}
+
+	// 3. Pre-compose with each method handler
+	methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD", "ANY"}
+	for _, m := range methods {
+		var handler HandlerCompose
+		if mh, ok := r.getMethod(m); ok {
+			handler = mh
+		}
+
+		if baseComposed != nil {
+			if handler != nil {
+				r.flattenHandlers[m] = compose(baseComposed, handler)
+			} else {
+				// If no specific method handler, use base (middleware only)
+				r.flattenHandlers[m] = baseComposed
+			}
+		} else if handler != nil {
+			r.flattenHandlers[m] = handler
+		}
+	}
 }
 
 func (r *Router) use(absolutePath string, handler HandlerCompose) *Router {
