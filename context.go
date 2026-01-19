@@ -2,6 +2,7 @@ package cart
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -295,6 +296,21 @@ func (c *Context) requestHeader(key string) string {
 		return values[0]
 	}
 	return ""
+}
+
+// Context returns the request's context.
+func (c *Context) Context() context.Context {
+	return c.Request.Context()
+}
+
+// SetHeader is an alias for c.Header(key, value)
+func (c *Context) SetHeader(key, value string) {
+	c.Header(key, value)
+}
+
+// Status sets the HTTP response code.
+func (c *Context) Status(code int) {
+	c.Response.WriteHeader(code)
 }
 
 func (c *Context) SetCookie(

@@ -1,9 +1,12 @@
 package cart
 
 import (
+	"compress/gzip"
 	"io"
 	"log"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -74,4 +77,38 @@ func colorForMethod(method string) string {
 	default:
 		return reset
 	}
+}
+
+// Gzip returns a middleware that compresses the response using gzip
+func Gzip() Handler {
+	return func(c *Context, next Next) {
+		if !strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+			next()
+			return
+		}
+
+		c.Header("Content-Encoding", "gzip")
+		c.Header("Vary", "Accept-Encoding")
+
+		gz := gzip.NewWriter(c.Response)
+		defer gz.Close()
+
+		// Wrap ResponseWriter to write gzipped data
+		oldWriter := c.Response.ResponseWriter
+		c.Response.ResponseWriter = &gzipWriter{ResponseWriter: oldWriter, Writer: gz}
+		defer func() {
+			c.Response.ResponseWriter = oldWriter
+		}()
+
+		next()
+	}
+}
+
+type gzipWriter struct {
+	http.ResponseWriter
+	io.Writer
+}
+
+func (g *gzipWriter) Write(b []byte) (int, error) {
+	return g.Writer.Write(b)
 }

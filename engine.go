@@ -96,10 +96,14 @@ func (e *Engine) addRoute(router *Router) {
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	c := e.pool.Get().(*Context)
+	// Safety: Ensure Context and Params are put back even on unexpected panics
+	defer e.pool.Put(c)
+	defer func() {
+		e.putParams(c.Params)
+	}()
+
 	c.reset(w, req)
 	e.serveHTTP(c)
-	e.putParams(c.Params)
-	e.pool.Put(c)
 }
 
 func (e *Engine) mixMethods(httpMethod string, r *Router) HandlerCompose {
