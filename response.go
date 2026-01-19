@@ -14,28 +14,16 @@ const (
 
 type ResponseWriter struct {
 	http.ResponseWriter
-	beforeFuncs []func()
-	afterFuncs  []func()
-	size        int
-	status      int
+	size   int
+	status int
 }
 
 // var _ ResponseWriter = &responseWriter{}
 
 func (w *ResponseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
-	w.beforeFuncs = nil
-	w.afterFuncs = nil
 	w.size = noWritten
 	w.status = defaultStatus
-}
-
-func (w *ResponseWriter) Before(fn func()) {
-	w.beforeFuncs = append(w.beforeFuncs, fn)
-}
-
-func (w *ResponseWriter) After(fn func()) {
-	w.afterFuncs = append(w.afterFuncs, fn)
 }
 
 func (w *ResponseWriter) WriteHeader(code int) {
@@ -50,22 +38,13 @@ func (w *ResponseWriter) WriteHeader(code int) {
 
 func (w *ResponseWriter) WriteHeaderFinal() {
 	if !w.Written() {
-		for _, fn := range w.beforeFuncs {
-			fn()
-		}
 		w.size = 0
 		w.ResponseWriter.WriteHeader(w.status)
-		for _, fn := range w.afterFuncs {
-			fn()
-		}
 	}
 }
 
 func (w *ResponseWriter) writeHeader() {
 	if !w.Written() {
-		for _, fn := range w.beforeFuncs {
-			fn()
-		}
 		w.size = 0
 		w.ResponseWriter.WriteHeader(w.status)
 	}
@@ -75,9 +54,6 @@ func (w *ResponseWriter) Write(data []byte) (n int, err error) {
 	w.writeHeader()
 	n, err = w.ResponseWriter.Write(data)
 	w.size += n
-	for _, fn := range w.afterFuncs {
-		fn()
-	}
 	return
 }
 
@@ -85,9 +61,6 @@ func (w *ResponseWriter) WriteString(s string) (n int, err error) {
 	w.writeHeader()
 	n, err = io.WriteString(w.ResponseWriter, s)
 	w.size += n
-	for _, fn := range w.afterFuncs {
-		fn()
-	}
 	return
 }
 
