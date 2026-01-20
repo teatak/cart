@@ -16,6 +16,7 @@ type ResponseWriter struct {
 	http.ResponseWriter
 	size   int
 	status int
+	before []func()
 }
 
 // var _ ResponseWriter = &responseWriter{}
@@ -24,6 +25,7 @@ func (w *ResponseWriter) reset(writer http.ResponseWriter) {
 	w.ResponseWriter = writer
 	w.size = noWritten
 	w.status = defaultStatus
+	w.before = nil
 }
 
 func (w *ResponseWriter) WriteHeader(code int) {
@@ -47,6 +49,11 @@ func (w *ResponseWriter) WriteHeaderFinal() {
 
 func (w *ResponseWriter) writeHeader() {
 	if !w.Written() {
+		// Execute before callbacks
+		for _, fn := range w.before {
+			fn()
+		}
+		w.before = nil
 		w.size = 0
 		w.ResponseWriter.WriteHeader(w.status)
 	}
@@ -91,4 +98,10 @@ func (w *ResponseWriter) Flush() {
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+// OnBeforeWrite registers a callback to be executed before the response headers are written.
+// This is useful for setting cookies or headers that depend on the response body.
+func (w *ResponseWriter) OnBeforeWrite(fn func()) {
+	w.before = append(w.before, fn)
 }
