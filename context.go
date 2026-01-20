@@ -138,6 +138,9 @@ func bodyAllowedForStatus(status int) bool {
 }
 
 func (c *Context) Param(key string) (string, bool) {
+	if c.Params == nil {
+		return "", false
+	}
 	return c.Params.Get(key)
 }
 
@@ -260,7 +263,7 @@ func (c *Context) Cookie(name string) (string, error) {
 }
 
 func (c *Context) isTrustedProxy(ip string) bool {
-	if len(c.Router.Engine.TrustedProxies) == 0 {
+	if c.Router == nil || len(c.Router.Engine.TrustedProxies) == 0 {
 		return false
 	}
 	for _, trusted := range c.Router.Engine.TrustedProxies {
@@ -276,7 +279,7 @@ func (c *Context) isTrustedProxy(ip string) bool {
 func (c *Context) ClientIP() string {
 	remoteIP, _, _ := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr))
 
-	if c.Router.Engine.ForwardedByClientIP && c.isTrustedProxy(remoteIP) {
+	if c.Router != nil && c.Router.Engine.ForwardedByClientIP && c.isTrustedProxy(remoteIP) {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		if index := strings.IndexByte(clientIP, ','); index >= 0 {
 			clientIP = clientIP[0:index]
@@ -291,7 +294,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if c.Router.Engine.AppEngine {
+	if c.Router != nil && c.Router.Engine.AppEngine {
 		if addr := c.Request.Header.Get("X-Appengine-Remote-Addr"); addr != "" {
 			return addr
 		}
@@ -311,9 +314,13 @@ func (c *Context) Render(code int, r render.Render) {
 		c.Response.WriteHeader(code)
 	} else {
 		c.Response.status = code
-		//c.response.status = code
 		if err := r.Render(c.Response); err != nil {
-			panic(err)
+			// Use ErrorHandler if available, otherwise panic for backward compatibility
+			if c.Router != nil && c.Router.Engine.ErrorHandler != nil {
+				c.Router.Engine.ErrorHandler(c, err)
+			} else {
+				panic(err)
+			}
 		}
 	}
 }
@@ -329,7 +336,10 @@ func (c *Context) HTML(code int, name string, obj interface{}) {
 // LayoutHTML render layout html
 func (c *Context) LayoutHTML(code int, layout, name string, obj interface{}) {
 	html := c.HTMLString(name, obj)
-	tmp := obj.(H)
+	tmp, ok := obj.(H)
+	if !ok {
+		tmp = H{}
+	}
 	tmp["__CONTENT"] = template.HTML(html)
 	c.Render(code, render.HTML{Template: c.Router.Engine.Template, Name: layout, Data: tmp})
 }
@@ -362,7 +372,7 @@ func (c *Context) JSON(code int, obj interface{}) {
 
 // JSONP serializes the given struct as JSON into the response body with a callback.
 func (c *Context) JSONP(code int, callback string, obj interface{}) {
-	c.Header("Content-Type", "application/javascript; charset=utf-16")
+	c.Header("Content-Type", "application/javascript; charset=utf-8")
 	data, _ := json.Marshal(obj)
 	content := fmt.Sprintf("%s(%s);", callback, string(data))
 	c.Response.WriteHeader(code)

@@ -140,12 +140,12 @@ func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 
 // StaticFS works like Static but with a custom http.FileSystem
 func StaticFS(prefix string, fs http.FileSystem) Handler {
+	actualPrefix := prefix
+	if index := strings.LastIndex(prefix, "*"); index != -1 {
+		actualPrefix = prefix[0:index]
+	}
 	return func(c *Context, next Next) {
-		index := strings.LastIndex(prefix, "*")
-		if index != -1 {
-			prefix = prefix[0:index]
-		}
-		fileServer := http.StripPrefix(prefix, http.FileServer(fs))
+		fileServer := http.StripPrefix(actualPrefix, http.FileServer(fs))
 		fileServer.ServeHTTP(c.Response, c.Request)
 	}
 }

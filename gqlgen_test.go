@@ -43,24 +43,16 @@ func (h *MockPlaygroundHandler) ServeHTTP(w http.ResponseWriter, r *http.Request
 	w.Write([]byte(`<!DOCTYPE html><html><head><title>` + h.Title + `</title></head><body>Playground</body></html>`))
 }
 
-// MockSubscriptionHandler mimics a handler that might use CloseNotify
+// MockSubscriptionHandler mimics a handler that uses context for cancellation
 type MockSubscriptionHandler struct{}
 
 func (h *MockSubscriptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Standard library CloseNotifier check (deprecated but still used by some)
-	if cn, ok := w.(http.CloseNotifier); ok {
-		ch := cn.CloseNotify()
-
-		// Simulate holding connection
-		select {
-		case <-ch:
-			return
-		case <-time.After(10 * time.Millisecond):
-			w.Write([]byte("data: connected\n\n"))
-		}
-	} else {
-		// New way: r.Context().Done()
-		<-r.Context().Done()
+	// Modern way: use r.Context().Done()
+	select {
+	case <-r.Context().Done():
+		return
+	case <-time.After(10 * time.Millisecond):
+		w.Write([]byte("data: connected\n\n"))
 	}
 }
 
@@ -112,24 +104,8 @@ func TestGQLIntegration(t *testing.T) {
 	}
 }
 
-type MockCloseNotifier struct {
-	*httptest.ResponseRecorder
-	done chan bool
-}
-
-func NewMockCloseNotifier() *MockCloseNotifier {
-	return &MockCloseNotifier{
-		ResponseRecorder: httptest.NewRecorder(),
-		done:             make(chan bool, 1),
-	}
-}
-
-func (m *MockCloseNotifier) CloseNotify() <-chan bool {
-	return m.done
-}
-
 func TestGQLSubscriptionCompatibility(t *testing.T) {
-	// This ensures w.CloseNotify() doesn't panic and returns a channel
+	// Test subscription handler using modern context-based cancellation
 	app := New()
 	subHandler := &MockSubscriptionHandler{}
 
@@ -139,7 +115,7 @@ func TestGQLSubscriptionCompatibility(t *testing.T) {
 	})
 
 	req := httptest.NewRequest("GET", "/sub", nil)
-	w := NewMockCloseNotifier()
+	w := httptest.NewRecorder()
 
 	// Create a channel to wait for completion to avoid race in test cleanup
 	done := make(chan bool)

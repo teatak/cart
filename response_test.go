@@ -8,16 +8,6 @@ import (
 	"testing"
 )
 
-func TestResponseCloseNotify(t *testing.T) {
-	w := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
-	// Basic check to ensure it implements the interface and doesn't panic
-	if _, ok := interface{}(w).(http.CloseNotifier); !ok {
-		t.Errorf("ResponseWriter does not implement http.CloseNotifier")
-	}
-	// Note: We cannot easily test the actual channel behavior with httptest.ResponseRecorder
-	// as it doesn't support CloseNotify natively in a way that signals.
-}
-
 func TestResponseFlush(t *testing.T) {
 	w := &ResponseWriter{ResponseWriter: httptest.NewRecorder()}
 	if _, ok := interface{}(w).(http.Flusher); !ok {
