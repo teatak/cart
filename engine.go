@@ -141,8 +141,6 @@ func (e *Engine) serve404(c *Context, path string) {
 }
 
 func (e *Engine) serveHTTP(c *Context) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
 	if e.OnRequest != nil {
 		e.OnRequest(c)
 	}
@@ -152,59 +150,69 @@ func (e *Engine) serveHTTP(c *Context) {
 	path := c.Request.URL.Path
 	httpMethod := c.Request.Method
 
-	final404 := func() {
-		e.serve404(c, path)
+	var (
+		router *Router
+		ps     *Params
+		tsr    bool
+	)
+	e.mu.RLock()
+	root := e.tree
+	if root != nil {
+		r, p, t := root.getValue(path, e.getParams)
+		if r != nil {
+			router = r.(*Router)
+			ps = p
+		}
+		tsr = t
 	}
+	e.mu.RUnlock()
 
-	if root := e.tree; root != nil {
-		if r, ps, tsr := root.getValue(path, e.getParams); r != nil {
-			router := r.(*Router)
-			c.Router = router
-			c.Params = ps
+	if router != nil {
+		c.Router = router
+		c.Params = ps
 
-			// Get pre-composed handler
-			var handler HandlerCompose
-			if h, ok := router.flattenHandlers[httpMethod]; ok {
-				handler = h
-			} else if h, ok := router.flattenHandlers["ANY"]; ok {
-				handler = h
-			}
+		// Get pre-composed handler
+		var handler HandlerCompose
+		if h, ok := router.flattenHandlers[httpMethod]; ok {
+			handler = h
+		} else if h, ok := router.flattenHandlers["ANY"]; ok {
+			handler = h
+		}
 
-			if handler != nil {
-				handler(c, func() {})()
+		if handler != nil {
+			handler(c, noopNext)()
+		} else {
+			// try middleware only
+			if router.composed != nil {
+				final404 := func() { e.serve404(c, path) }
+				router.composed(c, final404)()
 			} else {
-				// try middleware only
-				if router.composed != nil {
-					router.composed(c, final404)()
-				} else {
-					final404()
-				}
-			}
-			c.Response.WriteHeaderFinal()
-			return
-		} else if httpMethod != "CONNECT" && path != "/" {
-			code := 301 // Permanent redirect, request with GET method
-			if httpMethod != "GET" {
-				code = 307
-			}
-			if tsr {
-				if len(path) > 1 && path[len(path)-1] == '/' {
-					c.Request.URL.Path = path[:len(path)-1]
-				} else {
-					c.Request.URL.Path = path + "/"
-				}
-				http.Redirect(c.Response, c.Request, c.Request.URL.String(), code)
-				return
+				e.serve404(c, path)
 			}
 		}
+		c.Response.WriteHeaderFinal()
+		return
+	} else if httpMethod != "CONNECT" && path != "/" && tsr {
+		code := 301 // Permanent redirect, request with GET method
+		if httpMethod != "GET" {
+			code = 307
+		}
+		if len(path) > 1 && path[len(path)-1] == '/' {
+			c.Request.URL.Path = path[:len(path)-1]
+		} else {
+			c.Request.URL.Path = path + "/"
+		}
+		http.Redirect(c.Response, c.Request, c.Request.URL.String(), code)
+		return
 	}
 	//find / middleware
 	r, composed := e.mixComposed(path)
 	if composed != nil {
 		c.Router = r
+		final404 := func() { e.serve404(c, path) }
 		composed(c, final404)()
 	} else {
-		final404()
+		e.serve404(c, path)
 	}
 	c.Response.WriteHeaderFinal()
 }

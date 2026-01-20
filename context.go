@@ -110,7 +110,10 @@ func (c *Context) BindJSON(obj interface{}) error {
 
 // BindQuery binds the URL query parameters to the interface
 func (c *Context) BindQuery(obj interface{}) error {
-	if err := mapValues(obj, c.Request.URL.Query()); err != nil {
+	if c.Request == nil || c.Request.URL == nil {
+		return fmt.Errorf("invalid request")
+	}
+	if err := mapValuesQuery(obj, c.Request.URL.RawQuery); err != nil {
 		return err
 	}
 	return c.Validate(obj)

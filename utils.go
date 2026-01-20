@@ -9,6 +9,8 @@ import (
 
 type Next func()
 
+var noopNext Next = func() {}
+
 // normal handler
 type Handler func(*Context, Next)
 type HandlerFinal func(*Context) error
@@ -88,7 +90,7 @@ func joinPaths(absolutePath, relativePath string) string {
 transfer Handler to HandlerCompose func
 */
 func makeCompose(handles ...Handler) HandlerCompose {
-	composeHandles := []HandlerCompose{}
+	composeHandles := make([]HandlerCompose, 0, len(handles))
 	for _, handle := range handles {
 		innerHandle := handle
 		tempHandle := func(c *Context, next Next) Next {

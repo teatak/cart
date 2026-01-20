@@ -1,9 +1,11 @@
 package cart
 
 import (
+	"bufio"
 	"compress/gzip"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -104,7 +106,7 @@ func Gzip() Handler {
 			gzipPool.Put(gz)
 		}()
 
-		c.Response.ResponseWriter = &gzipWriter{ResponseWriter: oldWriter, Writer: gz}
+		c.Response.ResponseWriter = &gzipWriter{ResponseWriter: oldWriter, gz: gz}
 		defer func() {
 			c.Response.ResponseWriter = oldWriter
 		}()
@@ -115,7 +117,7 @@ func Gzip() Handler {
 
 type gzipWriter struct {
 	http.ResponseWriter
-	io.Writer
+	gz *gzip.Writer
 }
 
 func (g *gzipWriter) Write(b []byte) (int, error) {
@@ -123,5 +125,30 @@ func (g *gzipWriter) Write(b []byte) (int, error) {
 	if g.Header().Get("Content-Type") == "" {
 		g.Header().Set("Content-Type", http.DetectContentType(b))
 	}
-	return g.Writer.Write(b)
+	return g.gz.Write(b)
+}
+
+func (g *gzipWriter) Flush() {
+	if g.gz != nil {
+		_ = g.gz.Flush()
+	}
+	if f, ok := g.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (g *gzipWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	hijacker, ok := g.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	return hijacker.Hijack()
+}
+
+func (g *gzipWriter) Push(target string, opts *http.PushOptions) error {
+	pusher, ok := g.ResponseWriter.(http.Pusher)
+	if !ok {
+		return http.ErrNotSupported
+	}
+	return pusher.Push(target, opts)
 }
