@@ -8,7 +8,7 @@
  ╚═════╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
 ```
 
-Current version: v2.1.3
+Current version: v2.1.4
 
 A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express, optimized for high-concurrency ⚡.
 
@@ -124,3 +124,28 @@ app.IdleTimeout = 120 * time.Second
 - `c.JSONP(code, callback, obj)`: Render JSONP for legacy support.
 - `c.AbortWithStatus(code)`: Stop execution and return status.
 
+## Error Handling
+
+Cart provides a unified error handling mechanism:
+
+```go
+app := cart.New()
+
+// Global error handler
+app.ErrorHandler = func(c *cart.Context, err error) {
+    c.JSON(500, cart.H{"error": err.Error()})
+}
+
+// In route handlers, just return the error
+app.Route("/api").GET(func(c *cart.Context) error {
+    data, err := fetchData()
+    if err != nil {
+        return err // Handled by ErrorHandler
+    }
+    return c.JSON(200, data)
+})
+```
+
+## License
+
+MIT License
