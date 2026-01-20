@@ -16,6 +16,7 @@ import (
 
 type Engine struct {
 	Router
+	mu         sync.RWMutex
 	delims     render.Delims
 	routers    map[string]*Router
 	pool       sync.Pool
@@ -35,6 +36,8 @@ type Engine struct {
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
 
+	MaxParams int
+
 	OnRequest    func(*Context)
 	OnResponse   func(*Context)
 	ErrorHandler func(*Context, error)
@@ -49,7 +52,7 @@ func (e *Engine) allocateContext() *Context {
 func (e *Engine) getParams() *Params {
 	ps, ok := e.paramsPool.Get().(*Params)
 	if !ok {
-		p := make(Params, 0, 20)
+		p := make(Params, 0, e.MaxParams)
 		return &p
 	}
 	*ps = (*ps)[:0]
@@ -70,6 +73,8 @@ func (e *Engine) recycleContext(c *Context) {
 }
 
 func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	router := e.routers[absolutePath]
 	if router == nil {
 		return nil, false
@@ -78,7 +83,9 @@ func (e *Engine) findRouter(absolutePath string) (*Router, bool) {
 }
 
 func (e *Engine) getRouter(absolutePath string) (*Router, bool) {
+	e.mu.RLock()
 	router := e.routers[absolutePath]
+	e.mu.RUnlock()
 	find := true
 	if router == nil {
 		find = false
@@ -95,6 +102,8 @@ func (e *Engine) addRoute(router *Router) {
 	if router.Path[0] != '/' {
 		panic("Path must begin with '/' in path '" + router.Path + "'")
 	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	if e.tree == nil {
 		e.tree = &node{}
 	}
@@ -132,6 +141,8 @@ func (e *Engine) serve404(c *Context, path string) {
 }
 
 func (e *Engine) serveHTTP(c *Context) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	if e.OnRequest != nil {
 		e.OnRequest(c)
 	}
@@ -241,6 +252,7 @@ func (e *Engine) init() {
 	e.ReadTimeout = 90 * time.Second
 	e.WriteTimeout = 90 * time.Second
 	e.IdleTimeout = 90 * time.Second
+	e.MaxParams = 20
 }
 
 func (e *Engine) Server(addr ...string) (server *http.Server) {

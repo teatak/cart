@@ -315,11 +315,15 @@ func (c *Context) Render(code int, r render.Render) {
 	} else {
 		c.Response.status = code
 		if err := r.Render(c.Response); err != nil {
-			// Use ErrorHandler if available, otherwise panic for backward compatibility
+			// Use ErrorHandler if available
 			if c.Router != nil && c.Router.Engine.ErrorHandler != nil {
 				c.Router.Engine.ErrorHandler(c, err)
 			} else {
-				panic(err)
+				// Fallback to a safe error display instead of panic
+				if IsDebugging() {
+					debugPrint("[ERROR] Render error: %v", err)
+				}
+				c.AbortRender(http.StatusInternalServerError, c.Request.URL.Path, err)
 			}
 		}
 	}
@@ -429,18 +433,18 @@ func (c *Context) Static(relativePath, prefix string, listDirectory bool, fallba
 
 func (c *Context) Stream(step func(w io.Writer) bool) {
 	w := c.Response
-	//clientGone := w.CloseNotify()
+	ctx := c.Request.Context()
 	for {
-		// select {
-		// // case <-clientGone:
-		// // 	return
-		// default:
-		keepOpen := step(w)
-		w.Flush()
-		if !keepOpen {
+		select {
+		case <-ctx.Done():
 			return
+		default:
+			keepOpen := step(w)
+			w.Flush()
+			if !keepOpen {
+				return
+			}
 		}
-		// }
 	}
 }
 

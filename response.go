@@ -42,8 +42,7 @@ func (w *ResponseWriter) WriteHeader(code int) {
 
 func (w *ResponseWriter) WriteHeaderFinal() {
 	if !w.Written() {
-		w.size = 0
-		w.ResponseWriter.WriteHeader(w.status)
+		w.writeHeader()
 	}
 }
 
