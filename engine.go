@@ -265,7 +265,7 @@ func (e *Engine) init() {
 
 func (e *Engine) Server(addr ...string) (server *http.Server) {
 	address := resolveAddress(addr)
-	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), address)
+	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), formatLogAddress(address, "http"))
 	server = &http.Server{
 		Addr:         address,
 		Handler:      e,
@@ -278,7 +278,7 @@ func (e *Engine) Server(addr ...string) (server *http.Server) {
 
 func (e *Engine) ServerKeepAlive(addr ...string) (server *http.Server) {
 	address := resolveAddress(addr)
-	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), address)
+	debugPrint("PID:%d HTTP on %s\n", os.Getpid(), formatLogAddress(address, "http"))
 	server = &http.Server{
 		Addr:    address,
 		Handler: e,
@@ -288,7 +288,7 @@ func (e *Engine) ServerKeepAlive(addr ...string) (server *http.Server) {
 
 func (e *Engine) Run(addr string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
-	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), addr)
+	debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), formatLogAddress(addr, "http"))
 	server = &http.Server{
 		Addr:         addr,
 		Handler:      e,
@@ -302,7 +302,7 @@ func (e *Engine) Run(addr string) (server *http.Server, err error) {
 
 func (e *Engine) RunTLS(addr string, certFile string, keyFile string) (server *http.Server, err error) {
 	defer func() { debugError(err) }()
-	debugPrint("PID:%d Listening and serving HTTPS on %s\n", os.Getpid(), addr)
+	debugPrint("PID:%d Listening and serving HTTPS on %s\n", os.Getpid(), formatLogAddress(addr, "https"))
 	server = &http.Server{
 		Addr:         addr,
 		Handler:      e,
@@ -324,7 +324,7 @@ func (e *Engine) RunGraceful(addr string) error {
 	}
 
 	go func() {
-		debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), addr)
+		debugPrint("PID:%d Listening and serving HTTP on %s\n", os.Getpid(), formatLogAddress(addr, "http"))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			debugError(err)
 		}

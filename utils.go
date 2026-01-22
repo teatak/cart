@@ -143,3 +143,16 @@ func compose(functions ...HandlerCompose) HandlerCompose {
 		return composed
 	}
 }
+
+func formatLogAddress(addr string, schema string) string {
+	if strings.HasPrefix(addr, ":") {
+		return schema + "://localhost" + addr
+	}
+	if strings.HasPrefix(addr, "0.0.0.0:") {
+		return schema + "://localhost" + addr[7:]
+	}
+	if strings.HasPrefix(addr, "[::]:") {
+		return schema + "://localhost" + addr[4:]
+	}
+	return schema + "://" + addr
+}

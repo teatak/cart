@@ -32,9 +32,8 @@ func TestDebugPrint(t *testing.T) {
 	debugError(errors.New("new error"))
 
 	debugPrint("these are |%d %s\n", 2, "error messages")
-	//w.String()
-	s := strings.Split(w.String(), "|")[1]
-	if s != "2 error messages\n" {
+	// w.String()
+	if !strings.Contains(w.String(), "these are |2 error messages") {
 		t.Errorf("Wrong return debugPrint %s", w.String())
 	}
 
@@ -48,7 +47,9 @@ func TestDebugPrint(t *testing.T) {
 
 func setup(w io.Writer) {
 	SetMode(DebugMode)
-	slog.SetDefault(slog.New(slog.NewTextHandler(w, nil)))
+	slog.SetDefault(slog.New(slog.NewTextHandler(w, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})))
 }
 
 func teardown() {
