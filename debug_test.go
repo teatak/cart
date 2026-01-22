@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 	"strings"
 	"testing"
@@ -48,10 +48,10 @@ func TestDebugPrint(t *testing.T) {
 
 func setup(w io.Writer) {
 	SetMode(DebugMode)
-	log.SetOutput(w)
+	slog.SetDefault(slog.New(slog.NewTextHandler(w, nil)))
 }
 
 func teardown() {
 	SetMode(DebugMode)
-	log.SetOutput(os.Stdout)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
 }

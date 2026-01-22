@@ -3,8 +3,9 @@ package cart
 import (
 	"bufio"
 	"compress/gzip"
+	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -38,13 +39,12 @@ func LoggerWithWriter(out io.Writer) Handler {
 			statusColor = colorForStatus(statusCode)
 			methodColor = colorForMethod(method)
 		}
-		log.Printf("%s[CART]%s  |%s %3d %s| %13v | %15s |%s %7s %s| %s\n",
-			blue, reset,
+		slog.Info(fmt.Sprintf("|%s %3d %s| %13v | %15s |%s %7s %s| %s",
 			statusColor, statusCode, reset,
 			latency,
 			clientIP,
 			methodColor, method, reset,
-			path)
+			path))
 	}
 }
 

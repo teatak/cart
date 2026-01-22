@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http/httputil"
 	"os"
 	"runtime"
@@ -23,17 +23,13 @@ func Recovery() Handler {
 }
 
 func RecoveryWithWriter(out io.Writer) Handler {
-	var logger *log.Logger
-	if out != nil {
-		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
-	}
 	return func(c *Context, next Next) {
 		defer func() {
 			if err := recover(); err != nil {
-				if logger != nil {
+				if out != nil {
 					stack := stack(3)
 					httprequest, _ := httputil.DumpRequest(c.Request, false)
-					logger.Printf("[Recovery] panic recovered:\n%s\n%s\n%s%s", string(httprequest), err, stack, reset)
+					slog.Error(fmt.Sprintf("panic recovered:\n%s\n%s\n%s", string(httprequest), err, stack))
 				}
 				c.AbortWithStatus(500)
 			}
@@ -43,17 +39,13 @@ func RecoveryWithWriter(out io.Writer) Handler {
 }
 
 func RecoveryRender(out io.Writer) Handler {
-	var logger *log.Logger
-	if out != nil {
-		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
-	}
 	return func(c *Context, next Next) {
 		defer func() {
 			if err := recover(); err != nil {
 				httprequest, _ := httputil.DumpRequest(c.Request, false)
-				if logger != nil {
+				if out != nil {
 					stack := stack(3)
-					logger.Printf("[Recovery] panic recovered:\n%s\n%s\n%s%s", string(httprequest), err, stack, reset)
+					slog.Error(fmt.Sprintf("panic recovered:\n%s\n%s\n%s", string(httprequest), err, stack))
 				}
 				c.AbortRender(500, string(httprequest), err)
 			}

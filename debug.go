@@ -1,8 +1,9 @@
 package cart
 
 import (
+	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"os"
 )
 
@@ -70,20 +71,7 @@ func IsDebugging() bool {
 
 func debugPrint(format string, values ...interface{}) {
 	if IsDebugging() {
-		isTerm := true
-
-		if _, ok := DefaultWriter.(*os.File); !ok || disableColor {
-			isTerm = false
-		}
-
-		var yellowColor, resetColor string
-		if isTerm {
-			yellowColor = yellow
-			resetColor = reset
-		}
-
-		values = append([]interface{}{yellowColor, resetColor}, values...)
-		log.Printf("%s[DEBUG]%s "+format, values...)
+		slog.Debug(fmt.Sprintf(format, values...))
 	}
 }
 
@@ -101,19 +89,7 @@ func debugWarning() {
 }
 
 func debugError(err error) {
-	if err != nil {
-		if IsDebugging() {
-			isTerm := true
-
-			if _, ok := DefaultWriter.(*os.File); !ok || disableColor {
-				isTerm = false
-			}
-			var redColor, resetColor string
-			if isTerm {
-				redColor = red
-				resetColor = reset
-			}
-			log.Printf("%s[ERROR]%s %v", redColor, resetColor, err)
-		}
+	if err != nil && IsDebugging() {
+		slog.Error(err.Error())
 	}
 }
