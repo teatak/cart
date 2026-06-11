@@ -1,9 +1,7 @@
 package cart
 
 import (
-	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -150,15 +148,17 @@ func TestTreeWildcard(t *testing.T) {
 		"/cmd/:tool/",
 		"/src/*filepath",
 		"/search/",
+		"/search/static",
 		"/search/:query",
-		"/user_:name",
-		"/user_:name/about",
 		"/files/:dir/*filepath",
+		"/files/static",
 		"/doc/",
 		"/doc/go_faq.html",
 		"/doc/go1.html",
 		"/info/:user/public",
 		"/info/:user/project/:project",
+		"/sessions/search",
+		"/sessions/:id",
 	}
 	for _, route := range routes {
 		tree.addRoute(route, fakeHandler(route))
@@ -174,13 +174,15 @@ func TestTreeWildcard(t *testing.T) {
 		{"/src/", false, "/src/*filepath", Params{Param{"filepath", "/"}}},
 		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
 		{"/search/", false, "/search/", nil},
+		{"/search/static", false, "/search/static", nil},
 		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
 		{"/search/someth!ng+in+ünìcodé/", true, "", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", Params{Param{"name", "gopher"}}},
-		{"/user_gopher/about", false, "/user_:name/about", Params{Param{"name", "gopher"}}},
 		{"/files/js/inc/framework.js", false, "/files/:dir/*filepath", Params{Param{"dir", "js"}, Param{"filepath", "/inc/framework.js"}}},
+		{"/files/static", false, "/files/static", nil},
 		{"/info/gordon/public", false, "/info/:user/public", Params{Param{"user", "gordon"}}},
 		{"/info/gordon/project/go", false, "/info/:user/project/:project", Params{Param{"user", "gordon"}, Param{"project", "go"}}},
+		{"/sessions/search", false, "/sessions/search", nil},
+		{"/sessions/abc", false, "/sessions/:id", Params{Param{"id", "abc"}}},
 	})
 
 	checkPriorities(t, tree)
@@ -224,20 +226,20 @@ func testRoutes(t *testing.T, routes []testRoute) {
 func TestTreeWildcardConflict(t *testing.T) {
 	routes := []testRoute{
 		{"/cmd/:tool/:sub", false},
-		{"/cmd/vet", true},
+		{"/cmd/vet", false},
 		{"/src/*filepath", false},
 		{"/src/*filepathx", true},
-		{"/src/", true},
+		{"/src/", false},
 		{"/src1/", false},
-		{"/src1/*filepath", true},
+		{"/src1/*filepath", false},
 		{"/src2*filepath", true},
 		{"/search/:query", false},
-		{"/search/invalid", true},
-		{"/user_:name", false},
-		{"/user_x", true},
-		{"/user_:name", false},
-		{"/id:id", false},
-		{"/id/:id", true},
+		{"/search/invalid", false},
+		{"/search/:term", true},
+		{"/user_:name", true},
+		{"/user_x", false},
+		{"/id:id", true},
+		{"/id/:id", false},
 	}
 	testRoutes(t, routes)
 }
@@ -245,15 +247,15 @@ func TestTreeWildcardConflict(t *testing.T) {
 func TestTreeChildConflict(t *testing.T) {
 	routes := []testRoute{
 		{"/cmd/vet", false},
-		{"/cmd/:tool/:sub", true},
+		{"/cmd/:tool/:sub", false},
 		{"/src/AUTHORS", false},
-		{"/src/*filepath", true},
+		{"/src/*filepath", false},
 		{"/user_x", false},
 		{"/user_:name", true},
 		{"/id/:id", false},
 		{"/id:id", true},
-		{"/:id", true},
-		{"/*filepath", true},
+		{"/:id", false},
+		{"/*filepath", false},
 	}
 	testRoutes(t, routes)
 }
@@ -266,7 +268,6 @@ func TestTreeDupliatePath(t *testing.T) {
 		"/doc/",
 		"/src/*filepath",
 		"/search/:query",
-		"/user_:name",
 	}
 	for _, route := range routes {
 		recv := catchPanic(func() {
@@ -292,7 +293,6 @@ func TestTreeDupliatePath(t *testing.T) {
 		{"/doc/", false, "/doc/", nil},
 		{"/src/some/file.png", false, "/src/*filepath", Params{Param{"filepath", "/some/file.png"}}},
 		{"/search/someth!ng+in+ünìcodé", false, "/search/:query", Params{Param{"query", "someth!ng+in+ünìcodé"}}},
-		{"/user_gopher", false, "/user_:name", Params{Param{"name", "gopher"}}},
 	})
 }
 
@@ -327,7 +327,7 @@ func TestTreeCatchAllConflict(t *testing.T) {
 func TestTreeCatchAllConflictRoot(t *testing.T) {
 	routes := []testRoute{
 		{"/", false},
-		{"/*filepath", true},
+		{"/*filepath", false},
 	}
 	testRoutes(t, routes)
 }
@@ -621,8 +621,6 @@ func TestTreeFindCaseInsensitivePath(t *testing.T) {
 }
 
 func TestTreeInvalidNodeType(t *testing.T) {
-	const panicMsg = "invalid node type"
-
 	tree := &node{}
 	tree.addRoute("/", fakeHandler("/"))
 	tree.addRoute("/:page", fakeHandler("/:page"))
@@ -630,58 +628,18 @@ func TestTreeInvalidNodeType(t *testing.T) {
 	// set invalid node type
 	tree.children[0].nType = 42
 
-	// normal lookup
-	recv := catchPanic(func() {
-		tree.getValue("/test", getParams)
-	})
-	if rs, ok := recv.(string); !ok || rs != panicMsg {
-		t.Fatalf("Expected panic '"+panicMsg+"', got '%v'", recv)
-	}
-
-	// case-insensitive lookup
-	recv = catchPanic(func() {
-		tree.findCaseInsensitivePath("/test", true)
-	})
-	if rs, ok := recv.(string); !ok || rs != panicMsg {
-		t.Fatalf("Expected panic '"+panicMsg+"', got '%v'", recv)
+	if handler, _, _ := tree.getValue("/test", getParams); handler != nil {
+		t.Fatalf("expected invalid child type to be ignored")
 	}
 }
 
 func TestTreeWildcardConflictEx(t *testing.T) {
-	conflicts := [...]struct {
-		route        string
-		segPath      string
-		existPath    string
-		existSegPath string
-	}{
-		{"/who/are/foo", "/foo", `/who/are/\*you`, `/\*you`},
-		{"/who/are/foo/", "/foo/", `/who/are/\*you`, `/\*you`},
-		{"/who/are/foo/bar", "/foo/bar", `/who/are/\*you`, `/\*you`},
-		{"/conxxx", "xxx", `/con:tact`, `:tact`},
-		{"/conooo/xxx", "ooo", `/con:tact`, `:tact`},
-	}
-
-	for _, conflict := range conflicts {
-		// I have to re-create a 'tree', because the 'tree' will be
-		// in an inconsistent state when the loop recovers from the
-		// panic which threw by 'addRoute' function.
-		tree := &node{}
-		routes := [...]string{
-			"/con:tact",
-			"/who/are/*you",
-			"/who/foo/hello",
-		}
-
-		for _, route := range routes {
-			tree.addRoute(route, fakeHandler(route))
-		}
-
-		recv := catchPanic(func() {
-			tree.addRoute(conflict.route, fakeHandler(conflict.route))
-		})
-
-		if !regexp.MustCompile(fmt.Sprintf("'%s' in new path .* conflicts with existing wildcard '%s' in existing prefix '%s'", conflict.segPath, conflict.existSegPath, conflict.existPath)).MatchString(fmt.Sprint(recv)) {
-			t.Fatalf("invalid wildcard conflict error (%v)", recv)
-		}
+	tree := &node{}
+	tree.addRoute("/sessions/:id", fakeHandler("/sessions/:id"))
+	recv := catchPanic(func() {
+		tree.addRoute("/sessions/:name", fakeHandler("/sessions/:name"))
+	})
+	if recv == nil {
+		t.Fatalf("expected equivalent param route to panic")
 	}
 }

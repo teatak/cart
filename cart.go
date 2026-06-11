@@ -16,7 +16,7 @@ A HTTP web framework written in golang
 import (
 	"html/template"
 
-	"github.com/teatak/cart/v2/render"
+	"github.com/teatak/cart/v3/render"
 )
 
 func New() *Engine {

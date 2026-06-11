@@ -1,4 +1,4 @@
-module github.com/teatak/cart/v2
+module github.com/teatak/cart/v3
 
 go 1.24.0
 

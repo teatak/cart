@@ -7,10 +7,10 @@
      ███░    ░███          ░███░░░░░███  ░███░░░░░███     ░███    
    ███░      ░░███     ███ ░███    ░███  ░███    ░███     ░███    
  ███░         ░░█████████  █████   █████ █████   █████    █████   
-░░░            ░░░░░░░░░  ░░░░░   ░░░░░ ░░░░░   ░░░░░    ░░░░░    v2
+░░░            ░░░░░░░░░  ░░░░░   ░░░░░ ░░░░░   ░░░░░    ░░░░░    v3
 ```
 
-Current version: v2.1.8
+Current version: v3.0.0
 
 A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa and Express, optimized for high-concurrency ⚡.
 
@@ -27,7 +27,7 @@ A lightweight, expressive, and robust HTTP web framework for Go, inspired by Koa
 ## Installation
 
 ```bash
-go get github.com/teatak/cart/v2
+go get github.com/teatak/cart/v3
 ```
 
 ## Quick Start
@@ -39,7 +39,7 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"github.com/teatak/cart/v2"
+	"github.com/teatak/cart/v3"
 )
 
 func main() {
@@ -81,10 +81,41 @@ Cart is designed for maximum throughput and minimal GC pressure:
 - **Middleware Pre-calculation**: All middleware chains (including inherited ones) are flattened into a single slice during registration. Runtime overhead of middleware lookup is **ZERO**.
 - **Struct Caching**: Reflection overhead in data binding (`Bind`, `Validate`) is minimized using a concurrent-safe `sync.Map` cache for struct metadata.
 - **Gzip Pooling**: `gzip.Writer` instances are recycled using `sync.Pool` to significantly reduce memory allocations during compression.
-- **Radix Tree Routing**: High-performance path matching with support for parameters and catch-alls.
+- **Segment Tree Routing**: Predictable path matching with static > parameter > catch-all specificity.
 - **Smart Recovery**: In Release mode, `Recovery` middleware skips expensive source code reading to maximize speed and security.
 
 ## Core Concepts
+
+### Routing Semantics
+
+Cart v3 uses whole-segment parameters:
+
+```text
+/sessions/search  # static
+/sessions/:id     # parameter
+/files/*path      # catch-all, final segment only
+```
+
+Matching priority is:
+
+```text
+static > parameter > catch-all
+```
+
+This means these routes can coexist:
+
+```go
+app.Route("/sessions/search").GET(search)
+app.Route("/sessions/:id").GET(show)
+```
+
+The following v2-style mid-segment parameters are no longer supported:
+
+```text
+/user_:name
+/con:tact
+/files/:name.json
+```
 
 ### Middleware Control
 Cart uses an "Onion" model with explicit control:

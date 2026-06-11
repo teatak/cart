@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/teatak/cart/v2/render"
+	"github.com/teatak/cart/v3/render"
 )
 
 func TestRenderJSON(t *testing.T) {
